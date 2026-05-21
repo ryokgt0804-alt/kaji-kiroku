@@ -1,244 +1,259 @@
 "use strict";
 
-const 保存キー接頭辞 = "kaji-kiroku-web-v1";
-const 曜日一覧 = ["日", "月", "火", "水", "木", "金", "土"];
-const 風呂掃除分一覧 = [15, 30, 45, 60, 75, 90, 105, 120];
-const 追加分一覧 = [15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180];
+// 家事記録 Web版 v2
+// 修正内容：表右端余白、表部分のみスクロール、風呂掃除セルのタップ循環入力
 
-const 状態 = {
-  年: new Date().getFullYear(),
-  月: new Date().getMonth() + 1,
-  期間: new Date().getDate() <= 15 ? "前半" : "後半",
-  記録一覧: [],
-  集計表示済み: false,
-  集計展開中: true
+const STORAGE_PREFIX = "kaji-kiroku-web-v1";
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const BATH_MINUTES = [15, 30, 45, 60, 75, 90, 105, 120];
+const EXTRA_MINUTES = [15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180];
+
+const state = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1,
+  period: new Date().getDate() <= 15 ? "first" : "second",
+  records: [],
+  summaryShown: false,
+  summaryExpanded: true
 };
 
-const 要素 = {
-  年選択: document.getElementById("yearSelect"),
-  月選択: document.getElementById("monthSelect"),
-  前半ボタン: document.getElementById("firstHalfButton"),
-  後半ボタン: document.getElementById("secondHalfButton"),
-  期間タイトル: document.getElementById("periodTitle"),
-  表本体: document.getElementById("recordBody"),
-  集計ボタン: document.getElementById("summaryButton"),
-  PDFボタン: document.getElementById("pdfButton"),
-  集計パネル: document.getElementById("summaryPanel"),
-  集計ヘッダー: document.getElementById("summaryHeader"),
-  集計内容: document.getElementById("summaryContent"),
-  集計矢印: document.getElementById("summaryArrow"),
-  閉じた集計表示: document.getElementById("collapsedSummary"),
-  モーダル背景: document.getElementById("modalBackdrop"),
-  モーダル題名: document.getElementById("modalTitle"),
-  モーダル本文: document.getElementById("modalBody"),
-  モーダル完了: document.getElementById("modalDoneButton"),
-  印刷領域: document.getElementById("printArea"),
-  データ書き出し: document.getElementById("exportDataButton"),
-  データ読み込み: document.getElementById("importDataInput")
+const el = {
+  yearSelect: document.getElementById("yearSelect"),
+  monthSelect: document.getElementById("monthSelect"),
+  firstHalfButton: document.getElementById("firstHalfButton"),
+  secondHalfButton: document.getElementById("secondHalfButton"),
+  periodTitle: document.getElementById("periodTitle"),
+  recordBody: document.getElementById("recordBody"),
+  summaryButton: document.getElementById("summaryButton"),
+  pdfButton: document.getElementById("pdfButton"),
+  summaryPanel: document.getElementById("summaryPanel"),
+  summaryHeader: document.getElementById("summaryHeader"),
+  summaryContent: document.getElementById("summaryContent"),
+  summaryArrow: document.getElementById("summaryArrow"),
+  collapsedSummary: document.getElementById("collapsedSummary"),
+  modalBackdrop: document.getElementById("modalBackdrop"),
+  modalTitle: document.getElementById("modalTitle"),
+  modalBody: document.getElementById("modalBody"),
+  modalDoneButton: document.getElementById("modalDoneButton"),
+  printArea: document.getElementById("printArea"),
+  exportDataButton: document.getElementById("exportDataButton"),
+  importDataInput: document.getElementById("importDataInput")
 };
 
-function カンマ(value) {
+function comma(value) {
   return Number(value || 0).toLocaleString("ja-JP");
 }
 
-function 円(value) {
-  return `${カンマ(value)}円`;
+function yen(value) {
+  return `${comma(value)}円`;
 }
 
-function 円マーク(value) {
-  return `¥${カンマ(value)}`;
+function yenMark(value) {
+  return `¥${comma(value)}`;
 }
 
-function 保存キー() {
-  return `${保存キー接頭辞}-${状態.年}-${状態.月}-${状態.期間}`;
+function storageKey() {
+  return `${STORAGE_PREFIX}-${state.year}-${state.month}-${state.period}`;
 }
 
-function 月末日(年, 月) {
-  return new Date(年, 月, 0).getDate();
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
 }
 
-function 表示日一覧() {
-  if (状態.期間 === "前半") {
+function visibleDays() {
+  if (state.period === "first") {
     return Array.from({ length: 15 }, (_, index) => index + 1);
   }
 
-  const 最終日 = 月末日(状態.年, 状態.月);
-  return Array.from({ length: 最終日 - 15 }, (_, index) => index + 16);
+  const lastDay = daysInMonth(state.year, state.month);
+  return Array.from({ length: lastDay - 15 }, (_, index) => index + 16);
 }
 
-function 曜日(年, 月, 日) {
-  return 曜日一覧[new Date(年, 月 - 1, 日).getDay()];
+function weekday(year, month, day) {
+  return WEEKDAYS[new Date(year, month - 1, day).getDay()];
 }
 
-function 空記録(日) {
+function emptyRecord(day) {
   return {
-    年: 状態.年,
-    月: 状態.月,
-    日,
-    風呂掃除分: null,
-    炊飯: false,
-    ゴミ集め: false,
-    掃除機: false,
-    おつかいメモ: "",
-    おつかい金額: null,
-    追加メモ: "",
-    追加分: null
+    year: state.year,
+    month: state.month,
+    day,
+    bathMinutes: null,
+    riceCooked: false,
+    trashCollected: false,
+    vacuumed: false,
+    shoppingMemo: "",
+    shoppingAmount: null,
+    extraMemo: "",
+    extraMinutes: null
   };
 }
 
-function 読み込み() {
-  const 日一覧 = 表示日一覧();
-  let 保存済み = [];
+function loadRecords() {
+  const days = visibleDays();
+  let saved = [];
 
   try {
-    const raw = localStorage.getItem(保存キー());
-    保存済み = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(保存済み)) {
-      保存済み = [];
-    }
+    const raw = localStorage.getItem(storageKey());
+    saved = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(saved)) saved = [];
   } catch {
-    保存済み = [];
+    saved = [];
   }
 
-  const 日別 = new Map(保存済み.map((記録) => [Number(記録.日), 記録]));
-  状態.記録一覧 = 日一覧.map((日) => ({
-    ...空記録(日),
-    ...(日別.get(日) || {}),
-    年: 状態.年,
-    月: 状態.月,
-    日
+  const byDay = new Map(saved.map((record) => [Number(record.day), record]));
+  state.records = days.map((day) => ({
+    ...emptyRecord(day),
+    ...(byDay.get(day) || {}),
+    year: state.year,
+    month: state.month,
+    day
   }));
 }
 
-function 保存() {
-  localStorage.setItem(保存キー(), JSON.stringify(状態.記録一覧));
+function saveRecords() {
+  localStorage.setItem(storageKey(), JSON.stringify(state.records));
 }
 
-function 集計() {
-  const 風呂掃除分 = 状態.記録一覧.reduce((sum, r) => sum + (Number(r.風呂掃除分) || 0), 0);
-  const 風呂掃除金額 = Math.floor(風呂掃除分 / 15) * 300;
+function calculateSummary() {
+  const bathMinutes = state.records.reduce((sum, r) => sum + (Number(r.bathMinutes) || 0), 0);
+  const bathAmount = Math.floor(bathMinutes / 15) * 300;
 
-  const 炊飯日 = 状態.記録一覧.filter((r) => r.炊飯).length;
-  const 炊飯金額 = 炊飯日 * 300;
+  const riceDays = state.records.filter((r) => r.riceCooked).length;
+  const riceAmount = riceDays * 300;
 
-  const ゴミ集め回 = 状態.記録一覧.filter((r) => r.ゴミ集め).length;
-  const ゴミ集め金額 = ゴミ集め回 * 200;
+  const trashCount = state.records.filter((r) => r.trashCollected).length;
+  const trashAmount = trashCount * 200;
 
-  const 掃除機回 = 状態.記録一覧.filter((r) => r.掃除機).length;
-  const 掃除機金額 = 掃除機回 * 1000;
+  const vacuumCount = state.records.filter((r) => r.vacuumed).length;
+  const vacuumAmount = vacuumCount * 1000;
 
-  const おつかい使用 = 状態.記録一覧.reduce((sum, r) => sum + (Number(r.おつかい金額) || 0), 0);
-  const おつかい報酬 = 状態.記録一覧.reduce((sum, r) => {
-    const 金額 = Number(r.おつかい金額) || 0;
-    return 金額 > 0 ? sum + Math.ceil(金額 / 500) * 50 : sum;
+  const shoppingTotal = state.records.reduce((sum, r) => sum + (Number(r.shoppingAmount) || 0), 0);
+  const shoppingReward = state.records.reduce((sum, r) => {
+    const amount = Number(r.shoppingAmount) || 0;
+    return amount > 0 ? sum + Math.ceil(amount / 500) * 50 : sum;
   }, 0);
 
-  const 追加分 = 状態.記録一覧.reduce((sum, r) => sum + (Number(r.追加分) || 0), 0);
-  const 追加金額 = Math.floor(追加分 / 15) * 300;
+  const extraMinutes = state.records.reduce((sum, r) => sum + (Number(r.extraMinutes) || 0), 0);
+  const extraAmount = Math.floor(extraMinutes / 15) * 300;
 
-  const 合計 = 風呂掃除金額 + 炊飯金額 + ゴミ集め金額 + 掃除機金額 + おつかい報酬 + 追加金額;
+  const totalAmount = bathAmount + riceAmount + trashAmount + vacuumAmount + shoppingReward + extraAmount;
 
   return {
-    風呂掃除分,
-    風呂掃除金額,
-    炊飯日,
-    炊飯金額,
-    ゴミ集め回,
-    ゴミ集め金額,
-    掃除機回,
-    掃除機金額,
-    おつかい使用,
-    おつかい報酬,
-    追加分,
-    追加金額,
-    合計
+    bathMinutes,
+    bathAmount,
+    riceDays,
+    riceAmount,
+    trashCount,
+    trashAmount,
+    vacuumCount,
+    vacuumAmount,
+    shoppingTotal,
+    shoppingReward,
+    extraMinutes,
+    extraAmount,
+    totalAmount
   };
 }
 
-function 期間タイトル() {
-  const 日一覧 = 表示日一覧();
-  return `${状態.年} ${状態.月}/${日一覧[0]} 〜 ${状態.月}/${日一覧[日一覧.length - 1]}`;
+function periodTitleText() {
+  const days = visibleDays();
+  return `${state.year} ${state.month}/${days[0]} 〜 ${state.month}/${days[days.length - 1]}`;
 }
 
-function 分表示(value) {
+function minutesText(value) {
   return value ? `${value}分` : "";
 }
 
-function 丸表示(value) {
+function circleText(value) {
   return value ? "○" : "";
 }
 
-function 要素に文字(id, text) {
+function cycleBathMinutes(record) {
+  const current = Number(record.bathMinutes) || 0;
+
+  if (!current) {
+    record.bathMinutes = 15;
+  } else if (current >= 120) {
+    record.bathMinutes = null;
+  } else {
+    record.bathMinutes = current + 15;
+  }
+
+  afterChange();
+}
+
+function setText(id, text) {
   document.getElementById(id).textContent = text;
 }
 
-function 選択肢描画() {
-  要素.年選択.innerHTML = "";
-  const 現在年 = new Date().getFullYear();
+function renderSelectors() {
+  el.yearSelect.innerHTML = "";
+  const currentYear = new Date().getFullYear();
 
-  for (let 年 = 現在年 - 2; 年 <= 現在年 + 10; 年++) {
+  for (let year = currentYear - 2; year <= currentYear + 10; year++) {
     const option = document.createElement("option");
-    option.value = String(年);
-    option.textContent = `${年}年`;
-    option.selected = 年 === 状態.年;
-    要素.年選択.appendChild(option);
+    option.value = String(year);
+    option.textContent = `${year}年`;
+    option.selected = year === state.year;
+    el.yearSelect.appendChild(option);
   }
 
-  要素.月選択.innerHTML = "";
-  for (let 月 = 1; 月 <= 12; 月++) {
+  el.monthSelect.innerHTML = "";
+  for (let month = 1; month <= 12; month++) {
     const option = document.createElement("option");
-    option.value = String(月);
-    option.textContent = `${月}月`;
-    option.selected = 月 === 状態.月;
-    要素.月選択.appendChild(option);
+    option.value = String(month);
+    option.textContent = `${month}月`;
+    option.selected = month === state.month;
+    el.monthSelect.appendChild(option);
   }
 }
 
-function 期間ボタン描画() {
-  要素.前半ボタン.classList.toggle("active", 状態.期間 === "前半");
-  要素.後半ボタン.classList.toggle("active", 状態.期間 === "後半");
+function renderPeriodButtons() {
+  el.firstHalfButton.classList.toggle("active", state.period === "first");
+  el.secondHalfButton.classList.toggle("active", state.period === "second");
 }
 
-function 表描画() {
-  要素.期間タイトル.textContent = 期間タイトル();
-  要素.表本体.innerHTML = "";
+function renderTable() {
+  el.periodTitle.textContent = periodTitleText();
+  el.recordBody.innerHTML = "";
 
-  for (const 記録 of 状態.記録一覧) {
+  for (const record of state.records) {
     const tr = document.createElement("tr");
 
-    tr.appendChild(通常セル(String(記録.日)));
-    tr.appendChild(通常セル(曜日(記録.年, 記録.月, 記録.日)));
+    tr.appendChild(normalCell(String(record.day)));
+    tr.appendChild(normalCell(weekday(record.year, record.month, record.day)));
 
-    tr.appendChild(入力セル(分表示(記録.風呂掃除分), () => 編集画面を開く(記録.日, "風呂掃除")));
-    tr.appendChild(入力セル(丸表示(記録.炊飯), () => {
-      記録.炊飯 = !記録.炊飯;
-      変更後処理();
+    tr.appendChild(editableCell(minutesText(record.bathMinutes), () => cycleBathMinutes(record)));
+    tr.appendChild(editableCell(circleText(record.riceCooked), () => {
+      record.riceCooked = !record.riceCooked;
+      afterChange();
     }, "circle"));
 
-    tr.appendChild(入力セル(丸表示(記録.ゴミ集め), () => {
-      記録.ゴミ集め = !記録.ゴミ集め;
-      変更後処理();
+    tr.appendChild(editableCell(circleText(record.trashCollected), () => {
+      record.trashCollected = !record.trashCollected;
+      afterChange();
     }, "circle"));
 
-    tr.appendChild(入力セル(丸表示(記録.掃除機), () => {
-      記録.掃除機 = !記録.掃除機;
-      変更後処理();
+    tr.appendChild(editableCell(circleText(record.vacuumed), () => {
+      record.vacuumed = !record.vacuumed;
+      afterChange();
     }, "circle"));
 
-    tr.appendChild(二段セル(記録.おつかいメモ, 記録.おつかい金額 ? 円マーク(記録.おつかい金額) : "", () => 編集画面を開く(記録.日, "おつかい")));
-    tr.appendChild(二段セル(記録.追加メモ, 分表示(記録.追加分), () => 編集画面を開く(記録.日, "追加")));
+    tr.appendChild(twoLineCell(record.shoppingMemo, record.shoppingAmount ? yenMark(record.shoppingAmount) : "", () => openEditor(record.day, "shopping")));
+    tr.appendChild(twoLineCell(record.extraMemo, minutesText(record.extraMinutes), () => openEditor(record.day, "extra")));
 
-    要素.表本体.appendChild(tr);
+    el.recordBody.appendChild(tr);
   }
 }
 
-function 通常セル(text) {
+function normalCell(text) {
   const td = document.createElement("td");
   td.textContent = text;
   return td;
 }
 
-function 入力セル(text, action, className = "") {
+function editableCell(text, action, className = "") {
   const td = document.createElement("td");
   td.className = `editable ${className}`.trim();
   td.textContent = text;
@@ -246,7 +261,7 @@ function 入力セル(text, action, className = "") {
   return td;
 }
 
-function 二段セル(memo, bottom, action) {
+function twoLineCell(memo, bottom, action) {
   const td = document.createElement("td");
   td.className = "editable";
 
@@ -267,81 +282,67 @@ function 二段セル(memo, bottom, action) {
   return td;
 }
 
-function 集計描画() {
-  if (!状態.集計表示済み) {
-    要素.集計パネル.classList.add("hidden");
+function renderSummary() {
+  if (!state.summaryShown) {
+    el.summaryPanel.classList.add("hidden");
     return;
   }
 
-  要素.集計パネル.classList.remove("hidden");
-  const s = 集計();
+  el.summaryPanel.classList.remove("hidden");
+  const s = calculateSummary();
 
-  要素.集計内容.classList.toggle("hidden", !状態.集計展開中);
-  要素.集計矢印.textContent = 状態.集計展開中 ? "⌃" : "⌄";
+  el.summaryContent.classList.toggle("hidden", !state.summaryExpanded);
+  el.summaryArrow.textContent = state.summaryExpanded ? "⌃" : "⌄";
+  el.collapsedSummary.textContent = state.summaryExpanded ? "" : `おつかい使用 ${yenMark(s.shoppingTotal)}　合計 ${yenMark(s.totalAmount)}`;
 
-  要素.閉じた集計表示.textContent = 状態.集計展開中 ? "" : `おつかい使用 ${円マーク(s.おつかい使用)}　合計 ${円マーク(s.合計)}`;
-
-  要素に文字("bathUnit", `${s.風呂掃除分}分`);
-  要素に文字("bathAmount", 円マーク(s.風呂掃除金額));
-  要素に文字("riceUnit", `${s.炊飯日}日`);
-  要素に文字("riceAmount", 円マーク(s.炊飯金額));
-  要素に文字("trashUnit", `${s.ゴミ集め回}回`);
-  要素に文字("trashAmount", 円マーク(s.ゴミ集め金額));
-  要素に文字("vacuumUnit", `${s.掃除機回}回`);
-  要素に文字("vacuumAmount", 円マーク(s.掃除機金額));
-  要素に文字("shoppingUse", `使用合計 ${円マーク(s.おつかい使用)}`);
-  要素に文字("shoppingReward", `報酬 ${円マーク(s.おつかい報酬)}`);
-  要素に文字("extraUnit", `${s.追加分}分`);
-  要素に文字("extraAmount", 円マーク(s.追加金額));
-  要素に文字("shoppingUseBottom", `おつかい使用 ${円(s.おつかい使用)}`);
-  要素に文字("totalBottom", `合計 ${円(s.合計)}`);
+  setText("bathUnit", `${s.bathMinutes}分`);
+  setText("bathAmount", yenMark(s.bathAmount));
+  setText("riceUnit", `${s.riceDays}日`);
+  setText("riceAmount", yenMark(s.riceAmount));
+  setText("trashUnit", `${s.trashCount}回`);
+  setText("trashAmount", yenMark(s.trashAmount));
+  setText("vacuumUnit", `${s.vacuumCount}回`);
+  setText("vacuumAmount", yenMark(s.vacuumAmount));
+  setText("shoppingUse", `使用合計 ${yenMark(s.shoppingTotal)}`);
+  setText("shoppingReward", `報酬 ${yenMark(s.shoppingReward)}`);
+  setText("extraUnit", `${s.extraMinutes}分`);
+  setText("extraAmount", yenMark(s.extraAmount));
+  setText("shoppingUseBottom", `おつかい使用 ${yen(s.shoppingTotal)}`);
+  setText("totalBottom", `合計 ${yen(s.totalAmount)}`);
 }
 
-function 全描画() {
-  選択肢描画();
-  期間ボタン描画();
-  表描画();
-  集計描画();
+function renderAll() {
+  renderSelectors();
+  renderPeriodButtons();
+  renderTable();
+  renderSummary();
 }
 
-function 変更後処理() {
-  保存();
-  表描画();
-  集計描画();
+function afterChange() {
+  saveRecords();
+  renderTable();
+  renderSummary();
 }
 
-function 期間変更(期間) {
-  状態.期間 = 期間;
-  状態.集計表示済み = false;
-  状態.集計展開中 = true;
-  読み込み();
-  全描画();
+function changePeriod(period) {
+  state.period = period;
+  state.summaryShown = false;
+  state.summaryExpanded = true;
+  loadRecords();
+  renderAll();
 }
 
-function 編集画面を開く(日, 種類) {
-  const 記録 = 状態.記録一覧.find((r) => r.日 === 日);
-  if (!記録) return;
+function openEditor(day, type) {
+  const record = state.records.find((r) => r.day === day);
+  if (!record) return;
 
-  要素.モーダル本文.innerHTML = "";
-  要素.モーダル題名.textContent = 種類 === "追加" ? "+α" : 種類;
+  el.modalBody.innerHTML = "";
+  el.modalTitle.textContent = type === "shopping" ? "おつかい" : "+α";
 
-  if (種類 === "風呂掃除") {
-    要素.モーダル本文.appendChild(分選択("風呂掃除", 記録.風呂掃除分, 風呂掃除分一覧, (value) => {
-      記録.風呂掃除分 = value;
-      変更後処理();
-    }));
-
-    要素.モーダル本文.appendChild(戻すボタン("未入力に戻す", () => {
-      記録.風呂掃除分 = null;
-      変更後処理();
-      編集画面を閉じる();
-    }));
-  }
-
-  if (種類 === "おつかい") {
-    要素.モーダル本文.appendChild(テキスト入力("メモ", 記録.おつかいメモ, (value) => {
-      記録.おつかいメモ = value;
-      変更後処理();
+  if (type === "shopping") {
+    el.modalBody.appendChild(textInput("メモ", record.shoppingMemo, (value) => {
+      record.shoppingMemo = value;
+      afterChange();
     }));
 
     const label = document.createElement("label");
@@ -357,59 +358,59 @@ function 編集画面を開く(日, 種類) {
     input.type = "tel";
     input.inputMode = "numeric";
     input.placeholder = "金額";
-    input.value = 記録.おつかい金額 ? String(記録.おつかい金額) : "";
+    input.value = record.shoppingAmount ? String(record.shoppingAmount) : "";
     input.addEventListener("input", () => {
       input.value = input.value.replace(/[^0-9]/g, "");
-      記録.おつかい金額 = input.value ? Number(input.value) : null;
-      変更後処理();
+      record.shoppingAmount = input.value ? Number(input.value) : null;
+      afterChange();
     });
 
     row.append(mark, input);
     label.appendChild(row);
-    要素.モーダル本文.appendChild(label);
-    要素.モーダル本文.appendChild(キーボードボタン());
+    el.modalBody.appendChild(label);
+    el.modalBody.appendChild(keyboardButton());
 
-    要素.モーダル本文.appendChild(戻すボタン("空欄に戻す", () => {
-      記録.おつかいメモ = "";
-      記録.おつかい金額 = null;
-      変更後処理();
-      編集画面を閉じる();
+    el.modalBody.appendChild(resetButton("空欄に戻す", () => {
+      record.shoppingMemo = "";
+      record.shoppingAmount = null;
+      afterChange();
+      closeEditor();
     }));
   }
 
-  if (種類 === "追加") {
-    要素.モーダル本文.appendChild(テキスト入力("メモ", 記録.追加メモ, (value) => {
-      記録.追加メモ = value;
-      変更後処理();
+  if (type === "extra") {
+    el.modalBody.appendChild(textInput("メモ", record.extraMemo, (value) => {
+      record.extraMemo = value;
+      afterChange();
     }));
 
-    要素.モーダル本文.appendChild(キーボードボタン());
+    el.modalBody.appendChild(keyboardButton());
 
-    const selectBlock = 分選択("+α", 記録.追加分, 追加分一覧, (value) => {
-      キーボードを閉じる();
-      記録.追加分 = value;
-      変更後処理();
+    const selectBlock = minuteSelect("+α", record.extraMinutes, EXTRA_MINUTES, (value) => {
+      closeKeyboard();
+      record.extraMinutes = value;
+      afterChange();
     });
 
     const select = selectBlock.querySelector("select");
-    select.addEventListener("pointerdown", キーボードを閉じる);
-    select.addEventListener("focus", キーボードを閉じる);
-    select.addEventListener("touchstart", キーボードを閉じる, { passive: true });
+    select.addEventListener("pointerdown", closeKeyboard);
+    select.addEventListener("focus", closeKeyboard);
+    select.addEventListener("touchstart", closeKeyboard, { passive: true });
 
-    要素.モーダル本文.appendChild(selectBlock);
+    el.modalBody.appendChild(selectBlock);
 
-    要素.モーダル本文.appendChild(戻すボタン("空欄に戻す", () => {
-      記録.追加メモ = "";
-      記録.追加分 = null;
-      変更後処理();
-      編集画面を閉じる();
+    el.modalBody.appendChild(resetButton("空欄に戻す", () => {
+      record.extraMemo = "";
+      record.extraMinutes = null;
+      afterChange();
+      closeEditor();
     }));
   }
 
-  要素.モーダル背景.classList.remove("hidden");
+  el.modalBackdrop.classList.remove("hidden");
 }
 
-function テキスト入力(labelText, value, onInput) {
+function textInput(labelText, value, onInput) {
   const label = document.createElement("label");
   label.textContent = labelText;
 
@@ -428,7 +429,7 @@ function テキスト入力(labelText, value, onInput) {
   return label;
 }
 
-function 分選択(labelText, current, options, onChange) {
+function minuteSelect(labelText, current, options, onChange) {
   const label = document.createElement("label");
   label.textContent = labelText;
 
@@ -456,16 +457,16 @@ function 分選択(labelText, current, options, onChange) {
   return label;
 }
 
-function キーボードボタン() {
+function keyboardButton() {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "keyboard-button";
   button.textContent = "キーボードを閉じる";
-  button.addEventListener("click", キーボードを閉じる);
+  button.addEventListener("click", closeKeyboard);
   return button;
 }
 
-function 戻すボタン(text, action) {
+function resetButton(text, action) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "reset-button";
@@ -474,18 +475,18 @@ function 戻すボタン(text, action) {
   return button;
 }
 
-function キーボードを閉じる() {
+function closeKeyboard() {
   if (document.activeElement && typeof document.activeElement.blur === "function") {
     document.activeElement.blur();
   }
 }
 
-function 編集画面を閉じる() {
-  キーボードを閉じる();
-  要素.モーダル背景.classList.add("hidden");
+function closeEditor() {
+  closeKeyboard();
+  el.modalBackdrop.classList.add("hidden");
 }
 
-function HTMLエスケープ(text) {
+function escapeHTML(text) {
   return String(text || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -494,25 +495,25 @@ function HTMLエスケープ(text) {
     .replaceAll("'", "&#039;");
 }
 
-function 印刷領域作成() {
-  const s = 集計();
+function buildPrintArea() {
+  const s = calculateSummary();
 
-  const rows = 状態.記録一覧.map((r) => `
+  const rows = state.records.map((r) => `
     <tr>
-      <td>${r.日}</td>
-      <td>${曜日(r.年, r.月, r.日)}</td>
-      <td>${分表示(r.風呂掃除分)}</td>
-      <td>${丸表示(r.炊飯)}</td>
-      <td>${丸表示(r.ゴミ集め)}</td>
-      <td>${丸表示(r.掃除機)}</td>
-      <td><div class="print-two"><span>${HTMLエスケープ(r.おつかいメモ)}</span><span>${r.おつかい金額 ? 円マーク(r.おつかい金額) : ""}</span></div></td>
-      <td><div class="print-two"><span>${HTMLエスケープ(r.追加メモ)}</span><span>${分表示(r.追加分)}</span></div></td>
+      <td>${r.day}</td>
+      <td>${weekday(r.year, r.month, r.day)}</td>
+      <td>${minutesText(r.bathMinutes)}</td>
+      <td>${circleText(r.riceCooked)}</td>
+      <td>${circleText(r.trashCollected)}</td>
+      <td>${circleText(r.vacuumed)}</td>
+      <td><div class="print-two"><span>${escapeHTML(r.shoppingMemo)}</span><span>${r.shoppingAmount ? yenMark(r.shoppingAmount) : ""}</span></div></td>
+      <td><div class="print-two"><span>${escapeHTML(r.extraMemo)}</span><span>${minutesText(r.extraMinutes)}</span></div></td>
     </tr>
   `).join("");
 
-  要素.印刷領域.innerHTML = `
+  el.printArea.innerHTML = `
     <div class="print-page">
-      <div class="print-title">${期間タイトル()}</div>
+      <div class="print-title">${periodTitleText()}</div>
 
       <table class="print-table">
         <colgroup>
@@ -552,19 +553,19 @@ function 印刷領域作成() {
         </colgroup>
         <tr>
           <th>小計</th>
-          <td><div class="print-two"><span>${s.風呂掃除分}分</span><span>${円(s.風呂掃除金額)}</span></div></td>
-          <td><div class="print-two"><span>${s.炊飯日}日</span><span>${円(s.炊飯金額)}</span></div></td>
-          <td><div class="print-two"><span>${s.ゴミ集め回}回</span><span>${円(s.ゴミ集め金額)}</span></div></td>
-          <td><div class="print-two"><span>${s.掃除機回}回</span><span>${円(s.掃除機金額)}</span></div></td>
-          <td><div class="print-two"><span></span><span>${円(s.おつかい報酬)}</span></div></td>
-          <td><div class="print-two"><span>${s.追加分}分</span><span>${円(s.追加金額)}</span></div></td>
+          <td><div class="print-two"><span>${s.bathMinutes}分</span><span>${yen(s.bathAmount)}</span></div></td>
+          <td><div class="print-two"><span>${s.riceDays}日</span><span>${yen(s.riceAmount)}</span></div></td>
+          <td><div class="print-two"><span>${s.trashCount}回</span><span>${yen(s.trashAmount)}</span></div></td>
+          <td><div class="print-two"><span>${s.vacuumCount}回</span><span>${yen(s.vacuumAmount)}</span></div></td>
+          <td><div class="print-two"><span></span><span>${yen(s.shoppingReward)}</span></div></td>
+          <td><div class="print-two"><span>${s.extraMinutes}分</span><span>${yen(s.extraAmount)}</span></div></td>
         </tr>
       </table>
 
       <div class="print-total-row">
         <div></div>
-        <div class="print-total-box"><span>合計</span><strong>${円(s.合計)}</strong></div>
-        <div class="print-shopping-box"><span>おつかい使用</span><strong>${円(s.おつかい使用)}</strong></div>
+        <div class="print-total-box"><span>合計</span><strong>${yen(s.totalAmount)}</strong></div>
+        <div class="print-shopping-box"><span>おつかい使用</span><strong>${yen(s.shoppingTotal)}</strong></div>
         <div></div>
       </div>
 
@@ -592,11 +593,11 @@ function 印刷領域作成() {
   `;
 }
 
-function データ書き出し() {
+function exportData() {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(保存キー接頭辞)) {
+    if (key && key.startsWith(STORAGE_PREFIX)) {
       data[key] = localStorage.getItem(key);
     }
   }
@@ -609,7 +610,7 @@ function データ書き出し() {
   URL.revokeObjectURL(a.href);
 }
 
-function データ読み込み(file) {
+function importData(file) {
   if (!file) return;
 
   const reader = new FileReader();
@@ -617,13 +618,13 @@ function データ読み込み(file) {
     try {
       const data = JSON.parse(String(reader.result || "{}"));
       for (const [key, value] of Object.entries(data)) {
-        if (key.startsWith(保存キー接頭辞) && typeof value === "string") {
+        if (key.startsWith(STORAGE_PREFIX) && typeof value === "string") {
           localStorage.setItem(key, value);
         }
       }
 
-      読み込み();
-      全描画();
+      loadRecords();
+      renderAll();
       alert("データを読み込みました。");
     } catch {
       alert("データの読み込みに失敗しました。");
@@ -633,78 +634,78 @@ function データ読み込み(file) {
   reader.readAsText(file);
 }
 
-function イベント設定() {
-  要素.年選択.addEventListener("change", () => {
-    状態.年 = Number(要素.年選択.value);
-    状態.集計表示済み = false;
-    読み込み();
-    全描画();
+function setupEvents() {
+  el.yearSelect.addEventListener("change", () => {
+    state.year = Number(el.yearSelect.value);
+    state.summaryShown = false;
+    loadRecords();
+    renderAll();
   });
 
-  要素.月選択.addEventListener("change", () => {
-    状態.月 = Number(要素.月選択.value);
-    状態.集計表示済み = false;
-    読み込み();
-    全描画();
+  el.monthSelect.addEventListener("change", () => {
+    state.month = Number(el.monthSelect.value);
+    state.summaryShown = false;
+    loadRecords();
+    renderAll();
   });
 
-  要素.前半ボタン.addEventListener("click", () => 期間変更("前半"));
-  要素.後半ボタン.addEventListener("click", () => 期間変更("後半"));
+  el.firstHalfButton.addEventListener("click", () => changePeriod("first"));
+  el.secondHalfButton.addEventListener("click", () => changePeriod("second"));
 
-  要素.集計ボタン.addEventListener("click", () => {
-    保存();
-    if (状態.集計表示済み) {
-      状態.集計展開中 = !状態.集計展開中;
+  el.summaryButton.addEventListener("click", () => {
+    saveRecords();
+    if (state.summaryShown) {
+      state.summaryExpanded = !state.summaryExpanded;
     } else {
-      状態.集計表示済み = true;
-      状態.集計展開中 = true;
+      state.summaryShown = true;
+      state.summaryExpanded = true;
     }
 
-    集計描画();
+    renderSummary();
   });
 
-  要素.集計ヘッダー.addEventListener("click", () => {
-    状態.集計展開中 = !状態.集計展開中;
-    集計描画();
+  el.summaryHeader.addEventListener("click", () => {
+    state.summaryExpanded = !state.summaryExpanded;
+    renderSummary();
   });
 
   let touchStartY = null;
-  要素.集計パネル.addEventListener("touchstart", (event) => {
+  el.summaryPanel.addEventListener("touchstart", (event) => {
     touchStartY = event.touches[0].clientY;
   }, { passive: true });
 
-  要素.集計パネル.addEventListener("touchend", (event) => {
+  el.summaryPanel.addEventListener("touchend", (event) => {
     if (touchStartY === null || event.changedTouches.length === 0) return;
 
     const diffY = event.changedTouches[0].clientY - touchStartY;
     if (diffY > 24) {
-      状態.集計展開中 = false;
+      state.summaryExpanded = false;
     } else if (diffY < -24) {
-      状態.集計展開中 = true;
+      state.summaryExpanded = true;
     }
 
     touchStartY = null;
-    集計描画();
+    renderSummary();
   }, { passive: true });
 
-  要素.モーダル完了.addEventListener("click", 編集画面を閉じる);
-  要素.モーダル背景.addEventListener("click", (event) => {
-    if (event.target === 要素.モーダル背景) {
-      編集画面を閉じる();
+  el.modalDoneButton.addEventListener("click", closeEditor);
+  el.modalBackdrop.addEventListener("click", (event) => {
+    if (event.target === el.modalBackdrop) {
+      closeEditor();
     }
   });
 
-  要素.PDFボタン.addEventListener("click", () => {
-    保存();
-    印刷領域作成();
+  el.pdfButton.addEventListener("click", () => {
+    saveRecords();
+    buildPrintArea();
     setTimeout(() => window.print(), 100);
   });
 
-  要素.データ書き出し.addEventListener("click", データ書き出し);
-  要素.データ読み込み.addEventListener("change", () => データ読み込み(要素.データ読み込み.files[0]));
+  el.exportDataButton.addEventListener("click", exportData);
+  el.importDataInput.addEventListener("change", () => importData(el.importDataInput.files[0]));
 }
 
-function サービスワーカー登録() {
+function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
@@ -712,7 +713,7 @@ function サービスワーカー登録() {
   }
 }
 
-イベント設定();
-読み込み();
-全描画();
-サービスワーカー登録();
+setupEvents();
+loadRecords();
+renderAll();
+registerServiceWorker();
