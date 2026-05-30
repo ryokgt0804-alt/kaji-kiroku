@@ -89,7 +89,7 @@ button {
 .picker-row {
   display: grid;
   grid-template-rows: auto auto;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 
@@ -678,10 +678,10 @@ button {
   width: 82px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 14px;
+  justify-content: flex-start;
+  gap: 26px;
   align-self: stretch;
-  padding: 4px 0 12px;
+  padding: clamp(140px, 22svh, 230px) 0 12px;
   background: #fff;
   z-index: 20;
 }
@@ -821,7 +821,27 @@ button {
 }
 
 
-/* v17: アプリ内おつかい金額表示を1.2倍に調整 */
+/* v17: 左側選択UIの位置と、おつかい金額表示を調整 */
 .record-table td:nth-child(7) .cell-sub {
   font-size: 19.2px;
+  line-height: 1.1;
+}
+
+@media (max-width: 760px) {
+  .side-controls {
+    flex-basis: 72px;
+    width: 72px;
+    gap: 24px;
+    padding-top: clamp(130px, 21svh, 210px);
+    padding-bottom: 8px;
+  }
+
+  .picker-row {
+    gap: 10px;
+  }
+
+  .record-table td:nth-child(7) .cell-sub {
+    font-size: 19.2px;
+    line-height: 1.1;
+  }
 }

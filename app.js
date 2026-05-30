@@ -1,7 +1,7 @@
 "use strict";
 
 // 家事記録 Web版 v17
-// 修正内容：PDFの期間・合計以外の文字サイズを約1.2倍、アプリのおつかい金額サイズを1.2倍
+// 修正内容：左側選択ボタン群の縦位置調整、月選択と前半/後半の隙間追加、おつかい金額表示を1.2倍
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -1206,9 +1206,9 @@ function drawHouseworkPdfCanvas() {
   for (let i = 0; i < colWidths.length; i++) {
     drawRect(ctx, x, tableY, colWidths[i], headerH, { fill: "#c9eef6", stroke: "#000", lineWidth: 2 });
     drawCenteredText(ctx, headerLabels[i], x, tableY, colWidths[i], headerH, {
-      fontSize: i === 2 || i === 5 ? 18 : 20,
+      fontSize: i === 2 || i === 5 ? 15 : 17,
       bold: true,
-      lineHeight: 22
+      lineHeight: 18
     });
     x += colWidths[i];
   }
@@ -1240,41 +1240,41 @@ function drawHouseworkPdfCanvas() {
     const y = tableY + headerH + rIndex * rowH;
     let cx = tableX;
 
-    drawCenteredText(ctx, record.day, cx, y, colWidths[0], rowH, { fontSize: 22 });
+    drawCenteredText(ctx, record.day, cx, y, colWidths[0], rowH, { fontSize: 18 });
     cx += colWidths[0];
 
-    drawCenteredText(ctx, weekday(record.year, record.month, record.day), cx, y, colWidths[1], rowH, { fontSize: 23 });
+    drawCenteredText(ctx, weekday(record.year, record.month, record.day), cx, y, colWidths[1], rowH, { fontSize: 19 });
     cx += colWidths[1];
 
     const hasBonus = bathBonusMinutesForRecord(record) > 0;
     const manualBath = minutesText(record.bathMinutes);
 
     if (hasBonus && manualBath) {
-      drawCenteredText(ctx, "☆", cx, y, colWidths[2] / 2, rowH, { fontSize: 28, bold: true });
-      drawCenteredText(ctx, manualBath, cx + colWidths[2] / 2, y, colWidths[2] / 2, rowH, { fontSize: 22 });
+      drawCenteredText(ctx, "☆", cx, y, colWidths[2] / 2, rowH, { fontSize: 23, bold: true });
+      drawCenteredText(ctx, manualBath, cx + colWidths[2] / 2, y, colWidths[2] / 2, rowH, { fontSize: 18 });
     } else if (hasBonus) {
-      drawCenteredText(ctx, "☆", cx, y, colWidths[2], rowH, { fontSize: 28, bold: true });
+      drawCenteredText(ctx, "☆", cx, y, colWidths[2], rowH, { fontSize: 23, bold: true });
     } else {
-      drawCenteredText(ctx, manualBath, cx, y, colWidths[2], rowH, { fontSize: 22 });
+      drawCenteredText(ctx, manualBath, cx, y, colWidths[2], rowH, { fontSize: 18 });
     }
 
     cx += colWidths[2];
 
-    drawCenteredText(ctx, circleText(record.riceCooked), cx, y, colWidths[3], rowH, { fontSize: 31 });
+    drawCenteredText(ctx, circleText(record.riceCooked), cx, y, colWidths[3], rowH, { fontSize: 26 });
     cx += colWidths[3];
 
-    drawCenteredText(ctx, circleText(record.trashCollected), cx, y, colWidths[4], rowH, { fontSize: 31 });
+    drawCenteredText(ctx, circleText(record.trashCollected), cx, y, colWidths[4], rowH, { fontSize: 26 });
     cx += colWidths[4];
 
-    drawCenteredText(ctx, circleText(record.vacuumed), cx, y, colWidths[5], rowH, { fontSize: 31 });
+    drawCenteredText(ctx, circleText(record.vacuumed), cx, y, colWidths[5], rowH, { fontSize: 26 });
     cx += colWidths[5];
 
-    drawCenteredText(ctx, record.shoppingMemo || "", cx + 4, y + 2, colWidths[6] - 8, rowH / 2 - 2, { fontSize: 16 });
-    drawCenteredText(ctx, record.shoppingAmount ? yenMark(record.shoppingAmount) : "", cx + 4, y + rowH / 2, colWidths[6] - 8, rowH / 2, { fontSize: 17 });
+    drawCenteredText(ctx, record.shoppingMemo || "", cx + 4, y + 2, colWidths[6] - 8, rowH / 2 - 2, { fontSize: 13 });
+    drawCenteredText(ctx, record.shoppingAmount ? yenMark(record.shoppingAmount) : "", cx + 4, y + rowH / 2, colWidths[6] - 8, rowH / 2, { fontSize: 14 });
     cx += colWidths[6];
 
-    drawCenteredText(ctx, record.extraMemo || "", cx + 4, y + 2, colWidths[7] - 8, rowH / 2 - 2, { fontSize: 16 });
-    drawCenteredText(ctx, minutesText(record.extraMinutes), cx + 4, y + rowH / 2, colWidths[7] - 8, rowH / 2, { fontSize: 17 });
+    drawCenteredText(ctx, record.extraMemo || "", cx + 4, y + 2, colWidths[7] - 8, rowH / 2 - 2, { fontSize: 13 });
+    drawCenteredText(ctx, minutesText(record.extraMinutes), cx + 4, y + rowH / 2, colWidths[7] - 8, rowH / 2, { fontSize: 14 });
   }
 
   const tableBottom = tableY + headerH + state.records.length * rowH;
@@ -1302,15 +1302,15 @@ function drawHouseworkPdfCanvas() {
     });
 
     if (i === 0) {
-      drawCenteredText(ctx, subTexts[i][0], x, subtotalY, subWidths[i], subtotalH, { fontSize: 23, bold: true });
+      drawCenteredText(ctx, subTexts[i][0], x, subtotalY, subWidths[i], subtotalH, { fontSize: 19, bold: true });
     } else {
       drawLine(ctx, x, subtotalY + subtotalH / 2, x + subWidths[i], subtotalY + subtotalH / 2, {
         stroke: "#aaa",
         lineWidth: 1,
         dash: [5, 5]
       });
-      drawRightText(ctx, subTexts[i][0], x, subtotalY, subWidths[i], subtotalH / 2, { fontSize: 18, padding: 8 });
-      drawRightText(ctx, subTexts[i][1], x, subtotalY + subtotalH / 2, subWidths[i], subtotalH / 2, { fontSize: 18, padding: 8 });
+      drawRightText(ctx, subTexts[i][0], x, subtotalY, subWidths[i], subtotalH / 2, { fontSize: 15, padding: 8 });
+      drawRightText(ctx, subTexts[i][1], x, subtotalY + subtotalH / 2, subWidths[i], subtotalH / 2, { fontSize: 15, padding: 8 });
     }
 
     x += subWidths[i];
@@ -1337,8 +1337,8 @@ function drawHouseworkPdfCanvas() {
     lineWidth: 1,
     dash: [5, 5]
   });
-  drawCenteredText(ctx, "おつかい使用", shoppingBoxX, totalY, shoppingBoxW, shoppingBoxH / 2, { fontSize: 16, bold: true });
-  drawRightText(ctx, yen(summary.shoppingTotal), shoppingBoxX, totalY + shoppingBoxH / 2, shoppingBoxW, shoppingBoxH / 2, { fontSize: 19, bold: true, padding: 10 });
+  drawCenteredText(ctx, "おつかい使用", shoppingBoxX, totalY, shoppingBoxW, shoppingBoxH / 2, { fontSize: 13, bold: true });
+  drawRightText(ctx, yen(summary.shoppingTotal), shoppingBoxX, totalY + shoppingBoxH / 2, shoppingBoxW, shoppingBoxH / 2, { fontSize: 16, bold: true, padding: 10 });
 
   const unitY = totalY + totalH + 46;
   const unitH = 70;
@@ -1352,9 +1352,9 @@ function drawHouseworkPdfCanvas() {
       lineWidth: 2
     });
     drawCenteredText(ctx, unitTexts[i], x, unitY, subWidths[i], unitH, {
-      fontSize: i === 5 ? 17 : 19,
+      fontSize: i === 5 ? 14 : 16,
       bold: i === 0,
-      lineHeight: 22
+      lineHeight: 18
     });
     x += subWidths[i];
   }
