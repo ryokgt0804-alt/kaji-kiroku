@@ -760,7 +760,7 @@ button {
 }
 
 .record-table td:nth-child(7) .cell-sub {
-  font-size: 16px;
+  font-size: 19.2px;
   line-height: 1.1;
 }
 
@@ -818,4 +818,10 @@ button {
 /* v14: 炊飯・ゴミ集め・掃除機の○印を1.1倍に調整 */
 .record-table td.circle {
   font-size: 35.2px;
+}
+
+
+/* v17: アプリ内おつかい金額表示を1.2倍に調整 */
+.record-table td:nth-child(7) .cell-sub {
+  font-size: 19.2px;
 }
