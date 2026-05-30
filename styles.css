@@ -38,7 +38,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 86px);
+  padding: calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 118px);
   background: #fff;
 }
 
@@ -102,15 +102,15 @@ button {
   width: 54px;
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 4px;
+  gap: 6px;
   background: #eeeeef;
-  border-radius: 18px;
-  padding: 4px;
-  min-height: 94px;
-  align-self: flex-start;
+  border-radius: 22px;
+  padding: 5px;
+  min-height: 188px;
+  align-self: center;
   position: sticky;
   left: 0;
-  top: 52px;
+  top: calc(50svh - 94px);
   z-index: 25;
 }
 
@@ -136,7 +136,7 @@ button {
 #periodTitle {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 55;
   margin: 2px 0 0;
   padding: 5px 0 7px;
   text-align: center;
@@ -150,7 +150,7 @@ button {
   flex: 0 0 auto;
   min-height: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: 8px;
   overflow: visible;
@@ -294,11 +294,19 @@ button {
 }
 
 .summary-panel {
-  flex: 0 0 auto;
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  z-index: 58;
+  max-height: calc(100svh - 170px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--summary-bg);
   border-radius: 12px;
   padding: 10px 16px 12px;
   touch-action: pan-y;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
 }
 
 .hidden {
@@ -496,7 +504,7 @@ button {
   .app {
     padding-left: 10px;
     padding-right: 10px;
-    padding-bottom: calc(env(safe-area-inset-bottom) + 86px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 118px);
   }
 
   .top {
@@ -514,8 +522,9 @@ button {
   .period-switch {
     flex-basis: 48px;
     width: 48px;
-    min-height: 88px;
-    top: 48px;
+    min-height: 176px;
+    align-self: center;
+    top: calc(50svh - 88px);
   }
 
   .table-scroll {
@@ -523,6 +532,13 @@ button {
     max-height: calc(100svh - 148px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     padding-left: 12px;
     padding-right: 40px;
+  }
+
+  .summary-panel {
+    left: 10px;
+    right: 10px;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    max-height: calc(100svh - 150px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
   .action-row {
