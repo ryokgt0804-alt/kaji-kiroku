@@ -367,10 +367,28 @@ function twoLineCell(memo, bottom, action) {
   return td;
 }
 
+function updateTableBottomSpace() {
+  const table = document.querySelector(".record-table");
+
+  if (!table) return;
+
+  if (!state.summaryShown) {
+    document.documentElement.style.setProperty("--table-bottom-space", "0px");
+    return;
+  }
+
+  const panelHeight = el.summaryPanel ? el.summaryPanel.offsetHeight : 0;
+  const buttonHeight = document.querySelector(".action-row")?.offsetHeight || 0;
+  const extraSpace = Math.max(0, panelHeight + buttonHeight + 12);
+
+  document.documentElement.style.setProperty("--table-bottom-space", `${extraSpace}px`);
+}
+
 function renderSummary() {
   if (!state.summaryShown) {
     el.summaryPanel.classList.add("hidden");
     el.summaryPanel.classList.remove("expanded", "collapsed");
+    updateTableBottomSpace();
     return;
   }
 
@@ -397,6 +415,8 @@ function renderSummary() {
   setText("extraAmount", yenMark(s.extraAmount));
   setText("shoppingUseBottom", `おつかい使用 ${yen(s.shoppingTotal)}`);
   setText("totalBottom", `合計 ${yen(s.totalAmount)}`);
+
+  requestAnimationFrame(updateTableBottomSpace);
 }
 
 function renderAll() {
@@ -943,4 +963,6 @@ preventDoubleTapZoom();
 setupEvents();
 loadRecords();
 renderAll();
+window.addEventListener("resize", () => requestAnimationFrame(updateTableBottomSpace));
+window.addEventListener("orientationchange", () => setTimeout(updateTableBottomSpace, 300));
 registerServiceWorker();
