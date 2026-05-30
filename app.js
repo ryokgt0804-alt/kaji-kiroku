@@ -1,7 +1,7 @@
 "use strict";
 
-// 家事記録 Web版 v12
-// 修正内容：平日5日達成時の土日風呂掃除星ボーナス、自動15分加算、星＋手入力時間の左右分割表示
+// 家事記録 Web版 v13
+// 修正内容：風呂掃除ボーナス星を白抜き☆へ変更、前半/後半・月またぎ判定を明示強化
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -127,28 +127,37 @@ function saveRecords() {
   localStorage.setItem(storageKey(), JSON.stringify(state.records));
 }
 
+function recordsFromStorageForDate(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const period = periodForDay(day);
+  const raw = localStorage.getItem(storageKeyFor(year, month, period));
+
+  if (!raw) return [];
+
+  try {
+    const records = JSON.parse(raw);
+    return Array.isArray(records) ? records : [];
+  } catch {
+    return [];
+  }
+}
+
 function storedRecordForDate(date) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
 
+  // 表示中の期間にある日付は、最新のstate.recordsを優先する
   if (year === state.year && month === state.month) {
     const currentRecord = state.records.find((record) => Number(record.day) === day);
     if (currentRecord) return currentRecord;
   }
 
-  const period = periodForDay(day);
-  const raw = localStorage.getItem(storageKeyFor(year, month, period));
-
-  if (!raw) return null;
-
-  try {
-    const records = JSON.parse(raw);
-    if (!Array.isArray(records)) return null;
-    return records.find((record) => Number(record.day) === day) || null;
-  } catch {
-    return null;
-  }
+  // 表示中ではない前半/後半、前月、翌月、年またぎの日付はlocalStorageから読む
+  const storedRecords = recordsFromStorageForDate(date);
+  return storedRecords.find((record) => Number(record.day) === day) || null;
 }
 
 function bathMinutesForDate(date) {
@@ -174,6 +183,8 @@ function bathBonusActiveForDate(year, month, day) {
 
   const monday = mondayOfSameWeek(target);
 
+  // 月曜〜金曜をDate加算で確認するため、
+  // 前半/後半またぎ・月またぎ・年またぎでも同じ週として判定できる
   for (let i = 0; i < 5; i++) {
     const weekdayDate = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
 
@@ -205,7 +216,7 @@ function bathPrintHTML(record) {
     return manualText;
   }
 
-  return `<div class="print-bath-split"><span>★</span><span>${manualText}</span></div>`;
+  return `<div class="print-bath-split"><span>☆</span><span>${manualText}</span></div>`;
 }
 
 function calculateSummary() {
@@ -376,7 +387,7 @@ function bathCell(record) {
 
     const star = document.createElement("span");
     star.className = "bath-bonus-star";
-    star.textContent = "★";
+    star.textContent = "☆";
 
     const manual = document.createElement("span");
     manual.className = "bath-manual-time";

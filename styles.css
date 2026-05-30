@@ -918,7 +918,7 @@ button {
 }
 
 
-/* v12: 風呂掃除の平日達成ボーナス表示 */
+/* v13: 風呂掃除の平日達成ボーナス表示（白抜き☆） */
 .bath-cell-wrap {
   height: 100%;
   display: grid;
