@@ -246,7 +246,7 @@ button {
 }
 
 .circle {
-  font-size: 32px;
+  font-size: 35.2px;
   line-height: 1;
 }
 
@@ -644,166 +644,13 @@ button {
 
   .print-page {
     width: 210mm;
-    height: 297mm;
-    padding: 17mm 15mm 14mm;
+    min-height: 297mm;
+    padding: 8mm 8mm 6mm;
     background: #fff;
     color: #000;
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    page-break-after: avoid;
   }
-
-  .print-title {
-    text-align: center;
-    font-size: 17pt;
-    font-weight: 800;
-    margin-bottom: 8mm;
-  }
-
-  .print-table,
-  .print-subtotal,
-  .print-unit {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-  }
-
-  .print-table th,
-  .print-table td,
-  .print-subtotal th,
-  .print-subtotal td,
-  .print-unit th,
-  .print-unit td {
-    border: .7pt solid #000;
-    text-align: center;
-    vertical-align: middle;
-    color: #000;
-  }
-
-  .print-table th {
-    height: 9mm;
-    background: #c9eef6;
-    font-size: 8pt;
-    font-weight: 700;
-  }
-
-  .print-table td {
-    height: 8.8mm;
-    font-size: 9pt;
-  }
-
-  .print-two {
-    height: 100%;
-    display: grid;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  .print-two span {
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    white-space: nowrap;
-    font-size: 7pt;
-  }
-
-  .print-two span:first-child {
-    border-bottom: .35pt dashed #999;
-  }
-
-  .print-subtotal {
-    margin-top: 7mm;
-  }
-
-  .print-subtotal th {
-    width: 18mm;
-    height: 11mm;
-    background: #fffbd0;
-    font-size: 9pt;
-    font-weight: 800;
-  }
-
-  .print-subtotal td {
-    height: 11mm;
-    font-size: 8pt;
-  }
-
-  .print-subtotal .print-two span {
-    justify-items: end;
-    padding-right: 2mm;
-    font-size: 8pt;
-  }
-
-  .print-total-row {
-    display: grid;
-    grid-template-columns: 1fr 58mm 28mm 1fr;
-    align-items: center;
-    gap: 9mm;
-    margin-top: 8mm;
-  }
-
-  .print-total-box {
-    display: grid;
-    grid-template-columns: 25mm 33mm;
-    height: 13mm;
-    border: .9pt solid #000;
-  }
-
-  .print-total-box span {
-    display: grid;
-    place-items: center;
-    border-right: .9pt solid #000;
-    background: #ffe9ca;
-    font-size: 14pt;
-    font-weight: 800;
-  }
-
-  .print-total-box strong {
-    display: grid;
-    place-items: center end;
-    padding-right: 4mm;
-    font-size: 14pt;
-  }
-
-  .print-shopping-box {
-    width: 28mm;
-    height: 13mm;
-    border: .8pt solid #000;
-    display: grid;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  .print-shopping-box span {
-    display: grid;
-    place-items: center;
-    font-size: 7pt;
-  }
-
-  .print-shopping-box span:first-child {
-    border-bottom: .35pt dashed #999;
-  }
-
-  .print-shopping-box strong {
-    display: grid;
-    place-items: center end;
-    padding-right: 2mm;
-    font-size: 8pt;
-  }
-
-  .print-unit {
-    margin-top: 10mm;
-  }
-
-  .print-unit th {
-    width: 18mm;
-    height: 10mm;
-    background: #dff5d8;
-    font-size: 9pt;
-    font-weight: 800;
-  }
-
-  .print-unit td {
-    height: 10mm;
-    font-size: 8pt;
-  }
-}
 
 
 @media (max-width: 760px) {
@@ -965,4 +812,10 @@ button {
     height: 100%;
     font-size: 9pt;
   }
+}
+
+
+/* v14: 炊飯・ゴミ集め・掃除機の○印を1.1倍に調整 */
+.record-table td.circle {
+  font-size: 35.2px;
 }

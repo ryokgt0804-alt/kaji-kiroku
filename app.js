@@ -1,7 +1,7 @@
 "use strict";
 
-// 家事記録 Web版 v13
-// 修正内容：風呂掃除ボーナス星を白抜き☆へ変更、前半/後半・月またぎ判定を明示強化
+// 家事記録 Web版 v15
+// 修正内容：ブラウザ印刷ではなく直接PDF生成へ変更、URL/日時/ページ番号を出さない、PDF内の表を拡大
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -987,6 +987,400 @@ function setupOutsideTableScrollSync() {
   }, { passive: false });
 }
 
+
+function drawCenteredText(ctx, text, x, y, width, height, options = {}) {
+  const fontSize = options.fontSize || 20;
+  const bold = options.bold ? "700 " : "";
+  const color = options.color || "#000";
+  const lineHeight = options.lineHeight || Math.round(fontSize * 1.25);
+  const lines = String(text || "").split("\n");
+
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.font = `${bold}${fontSize}px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const totalHeight = lineHeight * lines.length;
+  const startY = y + height / 2 - totalHeight / 2 + lineHeight / 2;
+
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x + width / 2, startY + index * lineHeight);
+  });
+
+  ctx.restore();
+}
+
+function drawRightText(ctx, text, x, y, width, height, options = {}) {
+  const fontSize = options.fontSize || 20;
+  const bold = options.bold ? "700 " : "";
+  const color = options.color || "#000";
+  const padding = options.padding || 10;
+
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.font = `${bold}${fontSize}px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(text || ""), x + width - padding, y + height / 2);
+  ctx.restore();
+}
+
+function drawRect(ctx, x, y, w, h, options = {}) {
+  ctx.save();
+
+  if (options.fill) {
+    ctx.fillStyle = options.fill;
+    ctx.fillRect(x, y, w, h);
+  }
+
+  ctx.strokeStyle = options.stroke || "#000";
+  ctx.lineWidth = options.lineWidth || 2;
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
+function drawLine(ctx, x1, y1, x2, y2, options = {}) {
+  ctx.save();
+  ctx.strokeStyle = options.stroke || "#000";
+  ctx.lineWidth = options.lineWidth || 2;
+
+  if (options.dash) {
+    ctx.setLineDash(options.dash);
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTableGrid(ctx, x, y, colWidths, rowHeights, options = {}) {
+  const stroke = options.stroke || "#333";
+  const lineWidth = options.lineWidth || 2;
+
+  let currentX = x;
+  const totalH = rowHeights.reduce((sum, value) => sum + value, 0);
+
+  drawLine(ctx, x, y, x + colWidths.reduce((sum, value) => sum + value, 0), y, { stroke, lineWidth });
+
+  for (const width of colWidths) {
+    drawLine(ctx, currentX, y, currentX, y + totalH, { stroke, lineWidth });
+    currentX += width;
+  }
+
+  drawLine(ctx, currentX, y, currentX, y + totalH, { stroke, lineWidth });
+
+  let currentY = y;
+  const totalW = colWidths.reduce((sum, value) => sum + value, 0);
+
+  for (const height of rowHeights) {
+    drawLine(ctx, x, currentY, x + totalW, currentY, { stroke, lineWidth });
+    currentY += height;
+  }
+
+  drawLine(ctx, x, currentY, x + totalW, currentY, { stroke, lineWidth });
+}
+
+function textEncoderBytes(text) {
+  return new TextEncoder().encode(text);
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+function concatBytes(parts) {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const output = new Uint8Array(total);
+  let offset = 0;
+
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
+
+  return output;
+}
+
+function createPdfFromJpeg(jpegBytes, imageWidth, imageHeight) {
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const parts = [];
+  const offsets = [0];
+  let offset = 0;
+
+  const addText = (text) => {
+    const bytes = textEncoderBytes(text);
+    parts.push(bytes);
+    offset += bytes.length;
+  };
+
+  const addBytes = (bytes) => {
+    parts.push(bytes);
+    offset += bytes.length;
+  };
+
+  const startObject = (number) => {
+    offsets[number] = offset;
+    addText(`${number} 0 obj\n`);
+  };
+
+  addText("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+
+  startObject(1);
+  addText("<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+  startObject(2);
+  addText("<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+
+  startObject(3);
+  addText(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`);
+
+  startObject(4);
+  addText(`<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);
+  addBytes(jpegBytes);
+  addText("\nendstream\nendobj\n");
+
+  const content = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im0 Do\nQ\n`;
+  const contentBytes = textEncoderBytes(content);
+
+  startObject(5);
+  addText(`<< /Length ${contentBytes.length} >>\nstream\n`);
+  addBytes(contentBytes);
+  addText("endstream\nendobj\n");
+
+  const xrefOffset = offset;
+  addText("xref\n0 6\n");
+  addText("0000000000 65535 f \n");
+
+  for (let i = 1; i <= 5; i++) {
+    addText(`${String(offsets[i]).padStart(10, "0")} 00000 n \n`);
+  }
+
+  addText(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+  return new Blob([concatBytes(parts)], { type: "application/pdf" });
+}
+
+function drawHouseworkPdfCanvas() {
+  const canvas = document.createElement("canvas");
+  const width = 1240;
+  const height = 1754;
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, width, height);
+
+  const summary = calculateSummary();
+
+  // ページ全体の余白を小さめにして、表を従来より大きく配置
+  const pageMarginX = 58;
+  const titleY = 74;
+  const tableX = pageMarginX;
+  const tableY = 135;
+  const tableW = width - pageMarginX * 2;
+  const headerH = 56;
+  const rowH = state.records.length > 15 ? 56 : 59;
+  const rowHeights = [headerH, ...state.records.map(() => rowH)];
+  const mainColRatio = [7, 5, 16, 16, 16, 16, 13, 11];
+  const ratioSum = mainColRatio.reduce((sum, value) => sum + value, 0);
+  const colWidths = mainColRatio.map((value) => tableW * value / ratioSum);
+
+  drawCenteredText(ctx, periodTitleText(), 0, titleY, width, 50, { fontSize: 36, bold: true });
+
+  // メイン表ヘッダー
+  const headerLabels = ["", "", "風呂掃除\n(基本平日)", "炊飯", "ゴミ集め", "掃除機\n(基本 月・金)", "おつかい", "+α"];
+  let x = tableX;
+
+  for (let i = 0; i < colWidths.length; i++) {
+    drawRect(ctx, x, tableY, colWidths[i], headerH, { fill: "#c9eef6", stroke: "#000", lineWidth: 2 });
+    drawCenteredText(ctx, headerLabels[i], x, tableY, colWidths[i], headerH, {
+      fontSize: i === 2 || i === 5 ? 15 : 17,
+      bold: true,
+      lineHeight: 18
+    });
+    x += colWidths[i];
+  }
+
+  // メイン表グリッド
+  drawTableGrid(ctx, tableX, tableY, colWidths, rowHeights, { stroke: "#000", lineWidth: 2 });
+
+  // おつかい/+αの点線
+  const shoppingX = tableX + colWidths.slice(0, 6).reduce((sum, value) => sum + value, 0);
+  const extraX = shoppingX + colWidths[6];
+
+  for (let i = 0; i < state.records.length; i++) {
+    const y = tableY + headerH + i * rowH;
+    drawLine(ctx, shoppingX, y + rowH / 2, shoppingX + colWidths[6], y + rowH / 2, {
+      stroke: "#aaa",
+      lineWidth: 1,
+      dash: [5, 5]
+    });
+    drawLine(ctx, extraX, y + rowH / 2, extraX + colWidths[7], y + rowH / 2, {
+      stroke: "#aaa",
+      lineWidth: 1,
+      dash: [5, 5]
+    });
+  }
+
+  // メイン表データ
+  for (let rIndex = 0; rIndex < state.records.length; rIndex++) {
+    const record = state.records[rIndex];
+    const y = tableY + headerH + rIndex * rowH;
+    let cx = tableX;
+
+    drawCenteredText(ctx, record.day, cx, y, colWidths[0], rowH, { fontSize: 18 });
+    cx += colWidths[0];
+
+    drawCenteredText(ctx, weekday(record.year, record.month, record.day), cx, y, colWidths[1], rowH, { fontSize: 19 });
+    cx += colWidths[1];
+
+    const hasBonus = bathBonusMinutesForRecord(record) > 0;
+    const manualBath = minutesText(record.bathMinutes);
+
+    if (hasBonus) {
+      drawCenteredText(ctx, "☆", cx, y, colWidths[2] / 2, rowH, { fontSize: 23, bold: true });
+      drawCenteredText(ctx, manualBath, cx + colWidths[2] / 2, y, colWidths[2] / 2, rowH, { fontSize: 18 });
+    } else {
+      drawCenteredText(ctx, manualBath, cx, y, colWidths[2], rowH, { fontSize: 18 });
+    }
+
+    cx += colWidths[2];
+
+    drawCenteredText(ctx, circleText(record.riceCooked), cx, y, colWidths[3], rowH, { fontSize: 26 });
+    cx += colWidths[3];
+
+    drawCenteredText(ctx, circleText(record.trashCollected), cx, y, colWidths[4], rowH, { fontSize: 26 });
+    cx += colWidths[4];
+
+    drawCenteredText(ctx, circleText(record.vacuumed), cx, y, colWidths[5], rowH, { fontSize: 26 });
+    cx += colWidths[5];
+
+    drawCenteredText(ctx, record.shoppingMemo || "", cx + 4, y + 2, colWidths[6] - 8, rowH / 2 - 2, { fontSize: 13 });
+    drawCenteredText(ctx, record.shoppingAmount ? yenMark(record.shoppingAmount) : "", cx + 4, y + rowH / 2, colWidths[6] - 8, rowH / 2, { fontSize: 14 });
+    cx += colWidths[6];
+
+    drawCenteredText(ctx, record.extraMemo || "", cx + 4, y + 2, colWidths[7] - 8, rowH / 2 - 2, { fontSize: 13 });
+    drawCenteredText(ctx, minutesText(record.extraMinutes), cx + 4, y + rowH / 2, colWidths[7] - 8, rowH / 2, { fontSize: 14 });
+  }
+
+  const tableBottom = tableY + headerH + state.records.length * rowH;
+  const subtotalY = tableBottom + 34;
+  const subtotalH = 68;
+  const subRatios = [12, 16, 16, 16, 16, 13, 11];
+  const subRatioSum = subRatios.reduce((sum, value) => sum + value, 0);
+  const subWidths = subRatios.map((value) => tableW * value / subRatioSum);
+  const subTexts = [
+    ["小計"],
+    [`${summary.bathMinutes}分`, yen(summary.bathAmount)],
+    [`${summary.riceDays}日`, yen(summary.riceAmount)],
+    [`${summary.trashCount}回`, yen(summary.trashAmount)],
+    [`${summary.vacuumCount}回`, yen(summary.vacuumAmount)],
+    ["", yen(summary.shoppingReward)],
+    [`${summary.extraMinutes}分`, yen(summary.extraAmount)]
+  ];
+
+  x = tableX;
+  for (let i = 0; i < subWidths.length; i++) {
+    drawRect(ctx, x, subtotalY, subWidths[i], subtotalH, {
+      fill: i === 0 ? "#fffbd0" : "#fff",
+      stroke: "#000",
+      lineWidth: 2
+    });
+
+    if (i === 0) {
+      drawCenteredText(ctx, subTexts[i][0], x, subtotalY, subWidths[i], subtotalH, { fontSize: 19, bold: true });
+    } else {
+      drawLine(ctx, x, subtotalY + subtotalH / 2, x + subWidths[i], subtotalY + subtotalH / 2, {
+        stroke: "#aaa",
+        lineWidth: 1,
+        dash: [5, 5]
+      });
+      drawRightText(ctx, subTexts[i][0], x, subtotalY, subWidths[i], subtotalH / 2, { fontSize: 15, padding: 8 });
+      drawRightText(ctx, subTexts[i][1], x, subtotalY + subtotalH / 2, subWidths[i], subtotalH / 2, { fontSize: 15, padding: 8 });
+    }
+
+    x += subWidths[i];
+  }
+
+  const totalY = subtotalY + subtotalH + 48;
+  const totalW = 310;
+  const totalH = 74;
+  const shoppingBoxW = 170;
+  const shoppingBoxH = 74;
+  const gap = 62;
+  const totalGroupW = totalW + gap + shoppingBoxW;
+  const totalX = (width - totalGroupW) / 2;
+  const shoppingBoxX = totalX + totalW + gap;
+
+  drawRect(ctx, totalX, totalY, totalW, totalH, { stroke: "#000", lineWidth: 2 });
+  drawRect(ctx, totalX, totalY, 120, totalH, { fill: "#ffe9ca", stroke: "#000", lineWidth: 2 });
+  drawCenteredText(ctx, "合計", totalX, totalY, 120, totalH, { fontSize: 28, bold: true });
+  drawRightText(ctx, yen(summary.totalAmount), totalX + 120, totalY, totalW - 120, totalH, { fontSize: 29, bold: true, padding: 16 });
+
+  drawRect(ctx, shoppingBoxX, totalY, shoppingBoxW, shoppingBoxH, { stroke: "#000", lineWidth: 2 });
+  drawLine(ctx, shoppingBoxX, totalY + shoppingBoxH / 2, shoppingBoxX + shoppingBoxW, totalY + shoppingBoxH / 2, {
+    stroke: "#aaa",
+    lineWidth: 1,
+    dash: [5, 5]
+  });
+  drawCenteredText(ctx, "おつかい使用", shoppingBoxX, totalY, shoppingBoxW, shoppingBoxH / 2, { fontSize: 13, bold: true });
+  drawRightText(ctx, yen(summary.shoppingTotal), shoppingBoxX, totalY + shoppingBoxH / 2, shoppingBoxW, shoppingBoxH / 2, { fontSize: 16, bold: true, padding: 10 });
+
+  const unitY = totalY + totalH + 64;
+  const unitH = 66;
+  const unitTexts = ["単価", "15分 300円", "1日 300円", "1回 200円", "1回 1000円", "500円毎に50円\n(切り上げ)", "15分 300円"];
+
+  x = tableX;
+  for (let i = 0; i < subWidths.length; i++) {
+    drawRect(ctx, x, unitY, subWidths[i], unitH, {
+      fill: i === 0 ? "#dff5d8" : "#fff",
+      stroke: "#000",
+      lineWidth: 2
+    });
+    drawCenteredText(ctx, unitTexts[i], x, unitY, subWidths[i], unitH, {
+      fontSize: i === 5 ? 14 : 16,
+      bold: i === 0,
+      lineHeight: 18
+    });
+    x += subWidths[i];
+  }
+
+  return canvas;
+}
+
+function downloadPdfDirectly() {
+  saveRecords();
+
+  const canvas = drawHouseworkPdfCanvas();
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.96);
+  const jpegBytes = base64ToBytes(dataUrl.split(",")[1]);
+  const pdfBlob = createPdfFromJpeg(jpegBytes, canvas.width, canvas.height);
+  const url = URL.createObjectURL(pdfBlob);
+
+  const a = document.createElement("a");
+  const periodLabel = state.period === "first" ? "前半" : "後半";
+  a.href = url;
+  a.download = `家事記録表 ${state.year} ${state.month}月${periodLabel}.pdf`;
+  a.target = "_blank";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 function setupEvents() {
   el.yearSelect.addEventListener("change", () => {
     state.year = Number(el.yearSelect.value);
@@ -1062,9 +1456,7 @@ function setupEvents() {
   });
 
   el.pdfButton.addEventListener("click", () => {
-    saveRecords();
-    buildPrintArea();
-    setTimeout(() => window.print(), 100);
+    downloadPdfDirectly();
   });
 
   if (el.exportDataButton) {
