@@ -845,3 +845,51 @@ button {
     line-height: 1.1;
   }
 }
+
+
+/* v18: 左側選択UIの位置を強制的に中央寄りへ調整 */
+.side-controls {
+  flex-basis: 72px !important;
+  width: 72px !important;
+  align-self: stretch !important;
+  justify-content: center !important;
+  gap: 38px !important;
+  padding-top: 0 !important;
+  padding-bottom: 72px !important;
+  transform: none !important;
+}
+
+.side-controls .picker-row {
+  gap: 12px !important;
+}
+
+.side-controls .period-switch {
+  margin-top: 0 !important;
+}
+
+/* v18: おつかい列の金額表示を再調整 */
+.record-table td:nth-child(7) .cell-sub {
+  font-size: 23px !important;
+  line-height: 1.1 !important;
+}
+
+@media (max-width: 760px) {
+  .side-controls {
+    flex-basis: 72px !important;
+    width: 72px !important;
+    justify-content: center !important;
+    gap: 38px !important;
+    padding-top: 0 !important;
+    padding-bottom: 72px !important;
+    transform: none !important;
+  }
+
+  .side-controls .picker-row {
+    gap: 12px !important;
+  }
+
+  .record-table td:nth-child(7) .cell-sub {
+    font-size: 23px !important;
+    line-height: 1.1 !important;
+  }
+}
