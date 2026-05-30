@@ -1,7 +1,7 @@
 "use strict";
 
-// 家事記録 Web版 v4
-// 修正内容：ダブルタップ拡大抑制、風呂掃除1.6秒長押しリセット、長押し後の誤入力防止、表外スクロール同期
+// 家事記録 Web版 v12
+// 修正内容：平日5日達成時の土日風呂掃除星ボーナス、自動15分加算、星＋手入力時間の左右分割表示
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -56,8 +56,16 @@ function yenMark(value) {
   return `¥${comma(value)}`;
 }
 
+function storageKeyFor(year, month, period) {
+  return `${STORAGE_PREFIX}-${year}-${month}-${period}`;
+}
+
+function periodForDay(day) {
+  return day <= 15 ? "first" : "second";
+}
+
 function storageKey() {
-  return `${STORAGE_PREFIX}-${state.year}-${state.month}-${state.period}`;
+  return storageKeyFor(state.year, state.month, state.period);
 }
 
 function daysInMonth(year, month) {
@@ -119,8 +127,92 @@ function saveRecords() {
   localStorage.setItem(storageKey(), JSON.stringify(state.records));
 }
 
+function storedRecordForDate(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  if (year === state.year && month === state.month) {
+    const currentRecord = state.records.find((record) => Number(record.day) === day);
+    if (currentRecord) return currentRecord;
+  }
+
+  const period = periodForDay(day);
+  const raw = localStorage.getItem(storageKeyFor(year, month, period));
+
+  if (!raw) return null;
+
+  try {
+    const records = JSON.parse(raw);
+    if (!Array.isArray(records)) return null;
+    return records.find((record) => Number(record.day) === day) || null;
+  } catch {
+    return null;
+  }
+}
+
+function bathMinutesForDate(date) {
+  const record = storedRecordForDate(date);
+  return Number(record?.bathMinutes) || 0;
+}
+
+function mondayOfSameWeek(date) {
+  const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayOfWeek = result.getDay();
+  const offset = (dayOfWeek + 6) % 7;
+  result.setDate(result.getDate() - offset);
+  return result;
+}
+
+function bathBonusActiveForDate(year, month, day) {
+  const target = new Date(year, month - 1, day);
+  const dayOfWeek = target.getDay();
+
+  if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+    return false;
+  }
+
+  const monday = mondayOfSameWeek(target);
+
+  for (let i = 0; i < 5; i++) {
+    const weekdayDate = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+
+    if (bathMinutesForDate(weekdayDate) < 15) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function bathBonusMinutesForRecord(record) {
+  return bathBonusActiveForDate(record.year, record.month, record.day) ? 15 : 0;
+}
+
+function bathBonusCountForVisibleRecords() {
+  return state.records.filter((record) => bathBonusMinutesForRecord(record) > 0).length;
+}
+
+function bathDisplayTextForRecord(record) {
+  return minutesText(record.bathMinutes);
+}
+
+function bathPrintHTML(record) {
+  const hasBonus = bathBonusMinutesForRecord(record) > 0;
+  const manualText = bathDisplayTextForRecord(record);
+
+  if (!hasBonus) {
+    return manualText;
+  }
+
+  return `<div class="print-bath-split"><span>★</span><span>${manualText}</span></div>`;
+}
+
 function calculateSummary() {
-  const bathMinutes = state.records.reduce((sum, r) => sum + (Number(r.bathMinutes) || 0), 0);
+  const bathManualMinutes = state.records.reduce((sum, r) => sum + (Number(r.bathMinutes) || 0), 0);
+  const bathBonusCount = bathBonusCountForVisibleRecords();
+  const bathBonusMinutes = bathBonusCount * 15;
+  const bathMinutes = bathManualMinutes + bathBonusMinutes;
   const bathAmount = Math.floor(bathMinutes / 15) * 300;
 
   const riceDays = state.records.filter((r) => r.riceCooked).length;
@@ -144,6 +236,9 @@ function calculateSummary() {
   const totalAmount = bathAmount + riceAmount + trashAmount + vacuumAmount + shoppingReward + extraAmount;
 
   return {
+    bathManualMinutes,
+    bathBonusCount,
+    bathBonusMinutes,
     bathMinutes,
     bathAmount,
     riceDays,
@@ -271,8 +366,27 @@ function editableCell(text, action, className = "") {
 
 function bathCell(record) {
   const td = document.createElement("td");
-  td.className = "editable";
-  td.textContent = minutesText(record.bathMinutes);
+  const hasBonus = bathBonusMinutesForRecord(record) > 0;
+  const manualText = bathDisplayTextForRecord(record);
+  td.className = `editable bath-cell ${hasBonus ? "has-bath-bonus" : ""}`.trim();
+
+  if (hasBonus) {
+    const wrap = document.createElement("div");
+    wrap.className = "bath-cell-wrap";
+
+    const star = document.createElement("span");
+    star.className = "bath-bonus-star";
+    star.textContent = "★";
+
+    const manual = document.createElement("span");
+    manual.className = "bath-manual-time";
+    manual.textContent = manualText;
+
+    wrap.append(star, manual);
+    td.appendChild(wrap);
+  } else {
+    td.textContent = manualText;
+  }
 
   let timer = null;
   let longPressed = false;
@@ -302,7 +416,7 @@ function bathCell(record) {
           navigator.vibrate(20);
         }
         afterChange();
-      }, 1600);
+      }, 800);
     }
   });
 
@@ -610,7 +724,7 @@ function buildPrintArea() {
     <tr>
       <td>${r.day}</td>
       <td>${weekday(r.year, r.month, r.day)}</td>
-      <td>${minutesText(r.bathMinutes)}</td>
+      <td>${bathPrintHTML(r)}</td>
       <td>${circleText(r.riceCooked)}</td>
       <td>${circleText(r.trashCollected)}</td>
       <td>${circleText(r.vacuumed)}</td>

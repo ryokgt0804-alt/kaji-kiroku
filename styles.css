@@ -916,3 +916,53 @@ button {
   font-size: 16px;
   line-height: 1.1;
 }
+
+
+/* v12: 風呂掃除の平日達成ボーナス表示 */
+.bath-cell-wrap {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  justify-items: center;
+  padding: 0 4px;
+}
+
+.bath-bonus-star {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.bath-manual-time {
+  font-size: 22px;
+  line-height: 1;
+}
+
+@media (max-width: 760px) {
+  .bath-bonus-star {
+    font-size: 22px;
+  }
+
+  .bath-manual-time {
+    font-size: 20px;
+  }
+}
+
+@media print {
+  .print-bath-split {
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    justify-items: center;
+  }
+
+  .print-bath-split span {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    font-size: 9pt;
+  }
+}
