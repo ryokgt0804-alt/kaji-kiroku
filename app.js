@@ -1,12 +1,16 @@
 "use strict";
 
-// 家事記録 Web版 v3
-// 修正内容：期間・項目タイトル・操作ボタン固定、表内外スクロール分離、風呂掃除2秒長押しリセット
+// 家事記録 Web版 v4
+// 修正内容：ダブルタップ拡大抑制、風呂掃除1.6秒長押しリセット、長押し後の誤入力防止、表外スクロール同期
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const BATH_MINUTES = [15, 30, 45, 60, 75, 90, 105, 120];
 const EXTRA_MINUTES = [15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180];
+
+let bathTapIgnoreUntil = 0;
+let outsideTableTouchY = null;
+let lastTouchEndTime = 0;
 
 const state = {
   year: new Date().getFullYear(),
@@ -170,6 +174,10 @@ function circleText(value) {
 }
 
 function cycleBathMinutes(record) {
+  if (Date.now() < bathTapIgnoreUntil) {
+    return;
+  }
+
   const current = Number(record.bathMinutes) || 0;
 
   if (!current) {
@@ -288,12 +296,13 @@ function bathCell(record) {
     if (record.bathMinutes) {
       timer = setTimeout(() => {
         longPressed = true;
+        bathTapIgnoreUntil = Date.now() + 900;
         record.bathMinutes = null;
         if (navigator.vibrate) {
           navigator.vibrate(20);
         }
         afterChange();
-      }, 2000);
+      }, 1600);
     }
   });
 
@@ -307,16 +316,29 @@ function bathCell(record) {
     }
   });
 
-  td.addEventListener("pointerup", () => {
+  td.addEventListener("pointerup", (event) => {
     clearTimer();
 
-    if (!longPressed && !moved) {
+    if (longPressed) {
+      event.preventDefault();
+      bathTapIgnoreUntil = Date.now() + 900;
+      return;
+    }
+
+    if (!moved) {
       cycleBathMinutes(record);
     }
   });
 
   td.addEventListener("pointercancel", clearTimer);
   td.addEventListener("pointerleave", clearTimer);
+  td.addEventListener("click", (event) => {
+    if (Date.now() < bathTapIgnoreUntil) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+
   td.addEventListener("contextmenu", (event) => {
     event.preventDefault();
   });
@@ -697,6 +719,70 @@ function importData(file) {
   reader.readAsText(file);
 }
 
+function isInsideTableScroll(target) {
+  return Boolean(target && target.closest && target.closest(".table-scroll"));
+}
+
+function isInsideModal(target) {
+  return Boolean(target && target.closest && target.closest(".modal-backdrop"));
+}
+
+function tableScrollElement() {
+  return document.querySelector(".table-scroll");
+}
+
+function syncTableScrollByDelta(delta) {
+  const table = tableScrollElement();
+  if (!table || !Number.isFinite(delta)) return;
+
+  const next = table.scrollTop + delta;
+  table.scrollTop = Math.max(0, Math.min(next, table.scrollHeight - table.clientHeight));
+}
+
+function preventDoubleTapZoom() {
+  document.addEventListener("touchend", (event) => {
+    const now = Date.now();
+
+    if (now - lastTouchEndTime <= 320) {
+      event.preventDefault();
+    }
+
+    lastTouchEndTime = now;
+  }, { passive: false });
+}
+
+function setupOutsideTableScrollSync() {
+  document.addEventListener("touchstart", (event) => {
+    if (isInsideModal(event.target) || isInsideTableScroll(event.target)) {
+      outsideTableTouchY = null;
+      return;
+    }
+
+    outsideTableTouchY = event.touches[0]?.clientY ?? null;
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (event) => {
+    if (outsideTableTouchY === null) return;
+    if (isInsideModal(event.target) || isInsideTableScroll(event.target)) return;
+
+    const currentY = event.touches[0]?.clientY;
+    if (typeof currentY !== "number") return;
+
+    const delta = outsideTableTouchY - currentY;
+    syncTableScrollByDelta(delta);
+    outsideTableTouchY = currentY;
+  }, { passive: true });
+
+  document.addEventListener("touchend", () => {
+    outsideTableTouchY = null;
+  }, { passive: true });
+
+  document.addEventListener("wheel", (event) => {
+    if (isInsideModal(event.target) || isInsideTableScroll(event.target)) return;
+    syncTableScrollByDelta(event.deltaY);
+  }, { passive: true });
+}
+
 function setupEvents() {
   el.yearSelect.addEventListener("change", () => {
     state.year = Number(el.yearSelect.value);
@@ -776,6 +862,8 @@ function registerServiceWorker() {
   }
 }
 
+preventDoubleTapZoom();
+setupOutsideTableScrollSync();
 setupEvents();
 loadRecords();
 renderAll();

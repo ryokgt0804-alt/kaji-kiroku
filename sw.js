@@ -1,4 +1,4 @@
-const CACHE_NAME = "kaji-kiroku-web-v3";
+const CACHE_NAME = "kaji-kiroku-web-v4";
 
 const ASSETS = [
   "./",
