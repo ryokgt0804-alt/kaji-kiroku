@@ -370,10 +370,13 @@ function twoLineCell(memo, bottom, action) {
 function renderSummary() {
   if (!state.summaryShown) {
     el.summaryPanel.classList.add("hidden");
+    el.summaryPanel.classList.remove("expanded", "collapsed");
     return;
   }
 
   el.summaryPanel.classList.remove("hidden");
+  el.summaryPanel.classList.toggle("expanded", state.summaryExpanded);
+  el.summaryPanel.classList.toggle("collapsed", !state.summaryExpanded);
   const s = calculateSummary();
 
   el.summaryContent.classList.toggle("hidden", !state.summaryExpanded);
@@ -727,8 +730,17 @@ function isInsideModal(target) {
   return Boolean(target && target.closest && target.closest(".modal-backdrop"));
 }
 
+function isInsideSummaryPanel(target) {
+  return Boolean(target && target.closest && target.closest(".summary-panel"));
+}
+
 function tableScrollElement() {
   return document.querySelector(".table-scroll");
+}
+
+function isPeriodPinned() {
+  const rect = el.periodTitle.getBoundingClientRect();
+  return rect.top <= 1;
 }
 
 function syncTableScrollByDelta(delta) {
@@ -737,6 +749,26 @@ function syncTableScrollByDelta(delta) {
 
   const next = table.scrollTop + delta;
   table.scrollTop = Math.max(0, Math.min(next, table.scrollHeight - table.clientHeight));
+}
+
+function shouldSyncTableFromOutside(delta) {
+  const table = tableScrollElement();
+  if (!table || !Number.isFinite(delta)) return false;
+
+  const maxScrollTop = table.scrollHeight - table.clientHeight;
+  if (maxScrollTop <= 0) return false;
+
+  // 下方向への移動は、期間表示が画面上限に固定されてから表をスクロールする
+  if (delta > 0) {
+    return isPeriodPinned() && table.scrollTop < maxScrollTop;
+  }
+
+  // 上方向へ戻すときは、表が上端へ戻るまでは表側を優先して戻す
+  if (delta < 0) {
+    return table.scrollTop > 0;
+  }
+
+  return false;
 }
 
 function preventDoubleTapZoom() {
@@ -753,7 +785,11 @@ function preventDoubleTapZoom() {
 
 function setupOutsideTableScrollSync() {
   document.addEventListener("touchstart", (event) => {
-    if (isInsideModal(event.target) || isInsideTableScroll(event.target)) {
+    if (
+      isInsideModal(event.target) ||
+      isInsideTableScroll(event.target) ||
+      isInsideSummaryPanel(event.target)
+    ) {
       outsideTableTouchY = null;
       return;
     }
@@ -763,24 +799,47 @@ function setupOutsideTableScrollSync() {
 
   document.addEventListener("touchmove", (event) => {
     if (outsideTableTouchY === null) return;
-    if (isInsideModal(event.target) || isInsideTableScroll(event.target)) return;
+
+    if (
+      isInsideModal(event.target) ||
+      isInsideTableScroll(event.target) ||
+      isInsideSummaryPanel(event.target)
+    ) {
+      outsideTableTouchY = null;
+      return;
+    }
 
     const currentY = event.touches[0]?.clientY;
     if (typeof currentY !== "number") return;
 
     const delta = outsideTableTouchY - currentY;
-    syncTableScrollByDelta(delta);
+
+    if (shouldSyncTableFromOutside(delta)) {
+      syncTableScrollByDelta(delta);
+      event.preventDefault();
+    }
+
     outsideTableTouchY = currentY;
-  }, { passive: true });
+  }, { passive: false });
 
   document.addEventListener("touchend", () => {
     outsideTableTouchY = null;
   }, { passive: true });
 
   document.addEventListener("wheel", (event) => {
-    if (isInsideModal(event.target) || isInsideTableScroll(event.target)) return;
-    syncTableScrollByDelta(event.deltaY);
-  }, { passive: true });
+    if (
+      isInsideModal(event.target) ||
+      isInsideTableScroll(event.target) ||
+      isInsideSummaryPanel(event.target)
+    ) {
+      return;
+    }
+
+    if (shouldSyncTableFromOutside(event.deltaY)) {
+      syncTableScrollByDelta(event.deltaY);
+      event.preventDefault();
+    }
+  }, { passive: false });
 }
 
 function setupEvents() {
@@ -820,10 +879,18 @@ function setupEvents() {
 
   let touchStartY = null;
   el.summaryPanel.addEventListener("touchstart", (event) => {
+    event.stopPropagation();
     touchStartY = event.touches[0].clientY;
   }, { passive: true });
 
+  el.summaryPanel.addEventListener("touchmove", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, { passive: false });
+
   el.summaryPanel.addEventListener("touchend", (event) => {
+    event.stopPropagation();
+
     if (touchStartY === null || event.changedTouches.length === 0) return;
 
     const diffY = event.changedTouches[0].clientY - touchStartY;
@@ -836,6 +903,11 @@ function setupEvents() {
     touchStartY = null;
     renderSummary();
   }, { passive: true });
+
+  el.summaryPanel.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, { passive: false });
 
   el.modalDoneButton.addEventListener("click", closeEditor);
   el.modalBackdrop.addEventListener("click", (event) => {
