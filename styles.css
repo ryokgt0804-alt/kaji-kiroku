@@ -910,3 +910,15 @@ button {
   top: 0;
   z-index: 30;
 }
+
+
+/* v10: おつかい列の入力表示を大きくする */
+.record-table td:nth-child(7) .cell-memo {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.record-table td:nth-child(7) .cell-sub {
+  font-size: 20px;
+  line-height: 1.1;
+}

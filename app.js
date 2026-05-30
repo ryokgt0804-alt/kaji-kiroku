@@ -379,7 +379,8 @@ function updateTableBottomSpace() {
 
   const panelHeight = el.summaryPanel ? el.summaryPanel.offsetHeight : 0;
   const buttonHeight = document.querySelector(".action-row")?.offsetHeight || 0;
-  const extraSpace = Math.max(0, panelHeight + buttonHeight + 12);
+  const targetGap = 18;
+  const extraSpace = Math.max(0, panelHeight + buttonHeight + targetGap);
 
   document.documentElement.style.setProperty("--table-bottom-space", `${extraSpace}px`);
 }
