@@ -1,7 +1,7 @@
 "use strict";
 
-// 家事記録 Web版 v15
-// 修正内容：ブラウザ印刷ではなく直接PDF生成へ変更、URL/日時/ページ番号を出さない、PDF内の表を拡大
+// 家事記録 Web版 v16
+// 修正内容：PDFの上下余白を減らして縦方向に拡大、手入力時間なしの☆を中央寄せ
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -1186,12 +1186,12 @@ function drawHouseworkPdfCanvas() {
 
   // ページ全体の余白を小さめにして、表を従来より大きく配置
   const pageMarginX = 58;
-  const titleY = 74;
+  const titleY = 54;
   const tableX = pageMarginX;
-  const tableY = 135;
+  const tableY = 112;
   const tableW = width - pageMarginX * 2;
-  const headerH = 56;
-  const rowH = state.records.length > 15 ? 56 : 59;
+  const headerH = 60;
+  const rowH = state.records.length > 15 ? 66 : 70;
   const rowHeights = [headerH, ...state.records.map(() => rowH)];
   const mainColRatio = [7, 5, 16, 16, 16, 16, 13, 11];
   const ratioSum = mainColRatio.reduce((sum, value) => sum + value, 0);
@@ -1249,9 +1249,11 @@ function drawHouseworkPdfCanvas() {
     const hasBonus = bathBonusMinutesForRecord(record) > 0;
     const manualBath = minutesText(record.bathMinutes);
 
-    if (hasBonus) {
+    if (hasBonus && manualBath) {
       drawCenteredText(ctx, "☆", cx, y, colWidths[2] / 2, rowH, { fontSize: 23, bold: true });
       drawCenteredText(ctx, manualBath, cx + colWidths[2] / 2, y, colWidths[2] / 2, rowH, { fontSize: 18 });
+    } else if (hasBonus) {
+      drawCenteredText(ctx, "☆", cx, y, colWidths[2], rowH, { fontSize: 23, bold: true });
     } else {
       drawCenteredText(ctx, manualBath, cx, y, colWidths[2], rowH, { fontSize: 18 });
     }
@@ -1276,8 +1278,8 @@ function drawHouseworkPdfCanvas() {
   }
 
   const tableBottom = tableY + headerH + state.records.length * rowH;
-  const subtotalY = tableBottom + 34;
-  const subtotalH = 68;
+  const subtotalY = tableBottom + 24;
+  const subtotalH = 70;
   const subRatios = [12, 16, 16, 16, 16, 13, 11];
   const subRatioSum = subRatios.reduce((sum, value) => sum + value, 0);
   const subWidths = subRatios.map((value) => tableW * value / subRatioSum);
@@ -1314,9 +1316,9 @@ function drawHouseworkPdfCanvas() {
     x += subWidths[i];
   }
 
-  const totalY = subtotalY + subtotalH + 48;
+  const totalY = subtotalY + subtotalH + 34;
   const totalW = 310;
-  const totalH = 74;
+  const totalH = 76;
   const shoppingBoxW = 170;
   const shoppingBoxH = 74;
   const gap = 62;
@@ -1338,8 +1340,8 @@ function drawHouseworkPdfCanvas() {
   drawCenteredText(ctx, "おつかい使用", shoppingBoxX, totalY, shoppingBoxW, shoppingBoxH / 2, { fontSize: 13, bold: true });
   drawRightText(ctx, yen(summary.shoppingTotal), shoppingBoxX, totalY + shoppingBoxH / 2, shoppingBoxW, shoppingBoxH / 2, { fontSize: 16, bold: true, padding: 10 });
 
-  const unitY = totalY + totalH + 64;
-  const unitH = 66;
+  const unitY = totalY + totalH + 46;
+  const unitH = 70;
   const unitTexts = ["単価", "15分 300円", "1日 300円", "1回 200円", "1回 1000円", "500円毎に50円\n(切り上げ)", "15分 300円"];
 
   x = tableX;
