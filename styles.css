@@ -15,10 +15,14 @@ html,
 body {
   margin: 0;
   width: 100%;
+  height: 100%;
   min-height: 100%;
+  overflow: hidden;
   background: #fff;
   color: #000;
   touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
 }
 
@@ -34,11 +38,13 @@ button {
 }
 
 .app {
+  height: 100svh;
   min-height: 100svh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 118px);
+  padding: calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 86px);
   background: #fff;
 }
 
@@ -46,8 +52,7 @@ button {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
 }
 
 .top h1 {
@@ -78,54 +83,61 @@ button {
 .control-area {
   flex: 0 0 auto;
   display: grid;
-  gap: 8px;
+  gap: 0;
 }
 
 .picker-row {
-  display: flex;
-  justify-content: center;
-  gap: 28px;
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 8px;
+  width: 100%;
 }
 
 .picker-row select {
-  border: 0;
-  background: transparent;
+  width: 100%;
+  border: 1px solid #d8eeee;
+  border-radius: 12px;
+  background: #fff;
   color: var(--accent);
-  font-size: 24px;
-  font-weight: 600;
-  padding: 4px 8px;
+  font-size: 18px;
+  font-weight: 800;
+  padding: 8px 4px;
   text-align: center;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .period-switch {
-  flex: 0 0 54px;
-  width: 54px;
+  width: 100%;
   display: grid;
   grid-template-rows: 1fr 1fr;
-  gap: 6px;
+  gap: 8px;
   background: #eeeeef;
   border-radius: 22px;
   padding: 5px;
-  min-height: 188px;
+  min-height: 176px;
   align-self: center;
-  position: sticky;
-  left: 0;
-  top: calc(50svh - 94px);
   z-index: 25;
 }
 
 .period-switch button {
   border: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   background: transparent;
   color: #000;
+  font-size: 18px;
   font-weight: 800;
-  line-height: 1.1;
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  letter-spacing: 0.05em;
+  line-height: 1;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  letter-spacing: 0;
   display: grid;
   place-items: center;
+  appearance: none;
+  -webkit-appearance: none;
+  transform: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .period-switch button.active {
@@ -134,11 +146,11 @@ button {
 }
 
 #periodTitle {
-  position: sticky;
-  top: 0;
+  flex: 0 0 auto;
+  position: static;
   z-index: 55;
-  margin: 2px 0 0;
-  padding: 5px 0 7px;
+  margin: 0;
+  padding: 4px 0 7px;
   text-align: center;
   font-size: 30px;
   line-height: 1.15;
@@ -147,23 +159,25 @@ button {
 }
 
 .table-area {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: 8px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .table-scroll {
-  width: min(calc(100% - 62px), 980px);
-  max-height: calc(100svh - 158px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  flex: 1 1 auto;
+  width: min(calc(100% - 90px), 980px);
+  height: 100%;
+  max-height: 100%;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   background: #fff;
-  padding: 0 36px 10px;
+  padding: 0 40px 10px 12px;
 }
 
 .record-table {
@@ -803,5 +817,79 @@ button {
 
   .summary-panel.expanded .summary-bottom strong:last-child {
     font-size: 20px;
+  }
+}
+
+.data-buttons {
+  display: none !important;
+}
+
+.side-controls {
+  flex: 0 0 82px;
+  width: 82px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  align-self: stretch;
+  padding: 4px 0 12px;
+  background: #fff;
+  z-index: 20;
+}
+
+@media (max-width: 760px) {
+  .app {
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 86px);
+  }
+
+  .top h1 {
+    font-size: 26px;
+  }
+
+  #periodTitle {
+    font-size: 28px;
+    padding-top: 2px;
+    padding-bottom: 5px;
+  }
+
+  .table-area {
+    gap: 6px;
+  }
+
+  .side-controls {
+    flex-basis: 72px;
+    width: 72px;
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+
+  .picker-row select {
+    font-size: 16px;
+    padding: 7px 2px;
+  }
+
+  .period-switch {
+    min-height: 176px;
+    border-radius: 20px;
+  }
+
+  .period-switch button {
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  .table-scroll {
+    width: calc(100% - 78px);
+    height: 100%;
+    max-height: 100%;
+    padding-left: 8px;
+    padding-right: 40px;
+  }
+
+  .action-row {
+    left: 10px;
+    right: 10px;
   }
 }

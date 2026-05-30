@@ -16,26 +16,24 @@
   <main class="app">
     <header class="top">
       <h1>家事記録</h1>
-      <div class="data-buttons">
-        <button id="exportDataButton" type="button">データ書き出し</button>
-        <label>データ読み込み<input id="importDataInput" type="file" accept="application/json" hidden></label>
-      </div>
     </header>
 
     <section class="control-area">
-      <div class="picker-row">
-        <select id="yearSelect" aria-label="西暦"></select>
-        <select id="monthSelect" aria-label="月"></select>
-      </div>
-
       <h2 id="periodTitle"></h2>
     </section>
 
     <section class="table-area">
-      <div class="period-switch" aria-label="前半後半選択">
-        <button id="firstHalfButton" type="button">前半</button>
-        <button id="secondHalfButton" type="button">後半</button>
-      </div>
+      <aside class="side-controls" aria-label="年月と期間の選択">
+        <div class="picker-row">
+          <select id="yearSelect" aria-label="西暦"></select>
+          <select id="monthSelect" aria-label="月"></select>
+        </div>
+
+        <div class="period-switch" aria-label="前半後半選択">
+          <button id="firstHalfButton" type="button">前半</button>
+          <button id="secondHalfButton" type="button">後半</button>
+        </div>
+      </aside>
 
       <div class="table-scroll">
         <table class="record-table">

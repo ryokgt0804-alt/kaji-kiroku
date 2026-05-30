@@ -922,8 +922,13 @@ function setupEvents() {
     setTimeout(() => window.print(), 100);
   });
 
-  el.exportDataButton.addEventListener("click", exportData);
-  el.importDataInput.addEventListener("change", () => importData(el.importDataInput.files[0]));
+  if (el.exportDataButton) {
+    el.exportDataButton.addEventListener("click", exportData);
+  }
+
+  if (el.importDataInput) {
+    el.importDataInput.addEventListener("change", () => importData(el.importDataInput.files[0]));
+  }
 }
 
 function registerServiceWorker() {
@@ -935,7 +940,6 @@ function registerServiceWorker() {
 }
 
 preventDoubleTapZoom();
-setupOutsideTableScrollSync();
 setupEvents();
 loadRecords();
 renderAll();
