@@ -15,9 +15,7 @@ html,
 body {
   margin: 0;
   width: 100%;
-  height: 100%;
   min-height: 100%;
-  overflow: hidden;
   background: #fff;
   color: #000;
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
@@ -34,9 +32,7 @@ button {
 }
 
 .app {
-  height: 100svh;
   min-height: 100svh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -122,28 +118,34 @@ button {
 }
 
 #periodTitle {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   margin: 2px 0 0;
+  padding: 5px 0 7px;
   text-align: center;
   font-size: 30px;
   line-height: 1.15;
   font-weight: 800;
+  background: #fff;
 }
 
 .table-area {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
   display: flex;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .table-scroll {
-  width: min(100%, 960px);
+  width: min(100%, 980px);
+  max-height: calc(100svh - 158px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   background: #fff;
-  padding: 0 24px 8px;
+  padding: 0 36px 10px;
 }
 
 .record-table {
@@ -176,6 +178,8 @@ button {
   height: 66px;
   font-size: 22px;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .record-table th:nth-child(1),
@@ -240,10 +244,15 @@ button {
 }
 
 .action-row {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  padding: 6px 0 calc(4px + env(safe-area-inset-bottom));
+  background: #fff;
 }
 
 .action-row button {
@@ -483,8 +492,9 @@ button {
 
   .table-scroll {
     width: 100%;
+    max-height: calc(100svh - 148px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     padding-left: 16px;
-    padding-right: 28px;
+    padding-right: 40px;
   }
 
   .record-table {

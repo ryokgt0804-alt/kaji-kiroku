@@ -1,7 +1,7 @@
 "use strict";
 
-// 家事記録 Web版 v2
-// 修正内容：表右端余白、表部分のみスクロール、風呂掃除セルのタップ循環入力
+// 家事記録 Web版 v3
+// 修正内容：期間・項目タイトル・操作ボタン固定、表内外スクロール分離、風呂掃除2秒長押しリセット
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -224,7 +224,7 @@ function renderTable() {
     tr.appendChild(normalCell(String(record.day)));
     tr.appendChild(normalCell(weekday(record.year, record.month, record.day)));
 
-    tr.appendChild(editableCell(minutesText(record.bathMinutes), () => cycleBathMinutes(record)));
+    tr.appendChild(bathCell(record));
     tr.appendChild(editableCell(circleText(record.riceCooked), () => {
       record.riceCooked = !record.riceCooked;
       afterChange();
@@ -258,6 +258,69 @@ function editableCell(text, action, className = "") {
   td.className = `editable ${className}`.trim();
   td.textContent = text;
   td.addEventListener("click", action);
+  return td;
+}
+
+function bathCell(record) {
+  const td = document.createElement("td");
+  td.className = "editable";
+  td.textContent = minutesText(record.bathMinutes);
+
+  let timer = null;
+  let longPressed = false;
+  let moved = false;
+  let startX = 0;
+  let startY = 0;
+
+  const clearTimer = () => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  td.addEventListener("pointerdown", (event) => {
+    longPressed = false;
+    moved = false;
+    startX = event.clientX;
+    startY = event.clientY;
+
+    if (record.bathMinutes) {
+      timer = setTimeout(() => {
+        longPressed = true;
+        record.bathMinutes = null;
+        if (navigator.vibrate) {
+          navigator.vibrate(20);
+        }
+        afterChange();
+      }, 2000);
+    }
+  });
+
+  td.addEventListener("pointermove", (event) => {
+    const dx = Math.abs(event.clientX - startX);
+    const dy = Math.abs(event.clientY - startY);
+
+    if (dx > 10 || dy > 10) {
+      moved = true;
+      clearTimer();
+    }
+  });
+
+  td.addEventListener("pointerup", () => {
+    clearTimer();
+
+    if (!longPressed && !moved) {
+      cycleBathMinutes(record);
+    }
+  });
+
+  td.addEventListener("pointercancel", clearTimer);
+  td.addEventListener("pointerleave", clearTimer);
+  td.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
+
   return td;
 }
 
