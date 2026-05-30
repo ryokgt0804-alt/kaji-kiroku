@@ -38,7 +38,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 12px);
+  padding: calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 86px);
   background: #fff;
 }
 
@@ -98,20 +98,34 @@ button {
 }
 
 .period-switch {
+  flex: 0 0 54px;
+  width: 54px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
   background: #eeeeef;
-  border-radius: 999px;
-  padding: 2px;
-  min-height: 36px;
+  border-radius: 18px;
+  padding: 4px;
+  min-height: 94px;
+  align-self: flex-start;
+  position: sticky;
+  left: 0;
+  top: 52px;
+  z-index: 25;
 }
 
 .period-switch button {
   border: 0;
-  border-radius: 999px;
+  border-radius: 14px;
   background: transparent;
   color: #000;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1.1;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.05em;
+  display: grid;
+  place-items: center;
 }
 
 .period-switch button.active {
@@ -136,12 +150,14 @@ button {
   flex: 0 0 auto;
   min-height: 0;
   display: flex;
+  align-items: flex-start;
   justify-content: center;
+  gap: 8px;
   overflow: visible;
 }
 
 .table-scroll {
-  width: min(100%, 980px);
+  width: min(calc(100% - 62px), 980px);
   max-height: calc(100svh - 158px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow: auto;
   -webkit-overflow-scrolling: touch;
@@ -247,14 +263,15 @@ button {
 }
 
 .action-row {
-  position: sticky;
+  position: fixed;
+  left: 16px;
+  right: 16px;
   bottom: 0;
-  z-index: 40;
-  flex: 0 0 auto;
+  z-index: 60;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  padding: 6px 0 calc(4px + env(safe-area-inset-bottom));
+  padding: 6px 0 calc(10px + env(safe-area-inset-bottom));
   background: #fff;
 }
 
@@ -479,6 +496,7 @@ button {
   .app {
     padding-left: 10px;
     padding-right: 10px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 86px);
   }
 
   .top {
@@ -493,11 +511,23 @@ button {
     display: none;
   }
 
+  .period-switch {
+    flex-basis: 48px;
+    width: 48px;
+    min-height: 88px;
+    top: 48px;
+  }
+
   .table-scroll {
-    width: 100%;
+    width: calc(100% - 56px);
     max-height: calc(100svh - 148px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    padding-left: 16px;
+    padding-left: 12px;
     padding-right: 40px;
+  }
+
+  .action-row {
+    left: 10px;
+    right: 10px;
   }
 
   .record-table {
