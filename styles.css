@@ -205,11 +205,7 @@ button {
   background: var(--header-blue);
   font-size: 15px;
   font-weight: 800;
-  box-shadow:
-    inset 0 2px 0 var(--line),
-    inset 0 -2px 0 var(--line),
-    inset 2px 0 0 var(--line),
-    inset -2px 0 0 var(--line);
+  box-shadow: 0 2px 0 var(--line);
 }
 
 .record-table td {
@@ -906,19 +902,17 @@ button {
 }
 
 .record-table thead {
-  position: sticky;
-  top: 0;
   z-index: 30;
 }
 
 
-/* v10: おつかい列の入力表示を大きくする */
+/* v11: おつかい列の入力表示調整 */
 .record-table td:nth-child(7) .cell-memo {
   font-size: 18px;
   line-height: 1.1;
 }
 
 .record-table td:nth-child(7) .cell-sub {
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1.1;
 }
