@@ -10,7 +10,7 @@
   <title>家事記録</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
-  <link rel="stylesheet" href="./styles.css?v=21">
+  <link rel="stylesheet" href="./styles.css?v=22">
 
   <style>
     /* v19 最終上書き：左側選択UIを表の中央付近へ移動 */
@@ -154,6 +154,20 @@
     }
   </style>
 
+
+  <style>
+    /* v22 最終上書き：前半/後半はそのまま、年月選択だけ少し上へ */
+    .side-controls .picker-row {
+      transform: translateY(-24px) !important;
+    }
+
+    @media (max-width: 760px) {
+      .side-controls .picker-row {
+        transform: translateY(-24px) !important;
+      }
+    }
+  </style>
+
 </head>
 <body>
   <main class="app">
@@ -239,6 +253,6 @@
 
   <section id="printArea" class="print-area"></section>
 
-  <script src="./app.js?v=21"></script>
+  <script src="./app.js?v=22"></script>
 </body>
 </html>

@@ -1027,3 +1027,15 @@ button {
     font-weight: 600 !important;
   }
 }
+
+
+/* v22: 前半/後半選択ボタンの位置は維持し、西暦・月選択だけ少し上へ移動 */
+.side-controls .picker-row {
+  transform: translateY(-24px) !important;
+}
+
+@media (max-width: 760px) {
+  .side-controls .picker-row {
+    transform: translateY(-24px) !important;
+  }
+}
