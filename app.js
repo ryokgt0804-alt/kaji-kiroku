@@ -1,7 +1,7 @@
 "use strict";
 
-// 家事記録 Web版 v18
-// 修正内容：左側選択UIの位置を強制調整、おつかい金額表示を再調整、PDFの合計・期間以外の文字を1.2倍
+// 家事記録 Web版 v19
+// 修正内容：左側選択UIを中央寄りへ再調整、おつかい金額を1.2倍、PDFの期間/合計以外の文字サイズを強化
 
 const STORAGE_PREFIX = "kaji-kiroku-web-v1";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -1182,7 +1182,7 @@ function drawHouseworkPdfCanvas() {
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, width, height);
 
-  const pdfFont = (size) => Math.round(size * 1.2);
+  const pdfFont = (size) => Math.round(size * 1.22);
   const summary = calculateSummary();
 
   // ページ全体の余白を小さめにして、表を従来より大きく配置

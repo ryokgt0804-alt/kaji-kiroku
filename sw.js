@@ -1,10 +1,12 @@
-const CACHE_NAME = "kaji-kiroku-web-v18";
+const CACHE_NAME = "kaji-kiroku-web-v19";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./styles.css?v=19",
   "./app.js",
+  "./app.js?v=19",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
