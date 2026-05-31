@@ -10,54 +10,7 @@
   <title>家事記録</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
-  <link rel="stylesheet" href="./styles.css?v=19">
-
-  <style>
-    /* v19 最終上書き：左側選択UIを表の中央付近へ移動 */
-    .side-controls {
-      flex-basis: 72px !important;
-      width: 72px !important;
-      align-self: stretch !important;
-      justify-content: flex-start !important;
-      gap: 42px !important;
-      padding-top: clamp(210px, 30svh, 270px) !important;
-      padding-bottom: 0 !important;
-      transform: none !important;
-    }
-
-    .side-controls .picker-row {
-      gap: 12px !important;
-    }
-
-    .side-controls .period-switch {
-      margin-top: 0 !important;
-    }
-
-    /* v19 最終上書き：おつかい金額を現在より大きく表示 */
-    .record-table td:nth-child(7) .cell-sub {
-      font-size: 28px !important;
-      line-height: 1.05 !important;
-      font-weight: 700 !important;
-    }
-
-    @media (max-width: 760px) {
-      .side-controls {
-        flex-basis: 72px !important;
-        width: 72px !important;
-        justify-content: flex-start !important;
-        gap: 42px !important;
-        padding-top: clamp(200px, 30svh, 260px) !important;
-        padding-bottom: 0 !important;
-      }
-
-      .record-table td:nth-child(7) .cell-sub {
-        font-size: 28px !important;
-        line-height: 1.05 !important;
-        font-weight: 700 !important;
-      }
-    }
-  </style>
-
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <main class="app">
@@ -143,6 +96,6 @@
 
   <section id="printArea" class="print-area"></section>
 
-  <script src="./app.js?v=19"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
