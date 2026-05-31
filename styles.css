@@ -895,17 +895,16 @@ button {
 }
 
 
-/* v19: 左側の西暦・月・前半/後半選択を表の中央付近へ強制移動 */
+/* v19: 左側選択UIとおつかい金額表示を強制上書き */
 .side-controls {
-  flex: 0 0 72px !important;
+  flex-basis: 72px !important;
   width: 72px !important;
-  align-self: flex-start !important;
+  align-self: stretch !important;
   justify-content: flex-start !important;
-  gap: 32px !important;
-  padding: 0 0 12px 0 !important;
-  margin-top: clamp(185px, 27svh, 285px) !important;
+  gap: 42px !important;
+  padding-top: clamp(210px, 30svh, 270px) !important;
+  padding-bottom: 0 !important;
   transform: none !important;
-  position: relative !important;
 }
 
 .side-controls .picker-row {
@@ -916,37 +915,83 @@ button {
   margin-top: 0 !important;
 }
 
-/* v19: アプリ内のおつかい金額表示（¥〇〇）を現在より約1.2倍へ強制調整 */
-.record-table td:nth-child(7) .two-line-cell .cell-sub,
-.record-table td:nth-child(7) .cell-sub,
-.record-table td:nth-child(7) div.cell-sub {
-  font-size: 27.6px !important;
+.record-table td:nth-child(7) .cell-sub {
+  font-size: 28px !important;
   line-height: 1.05 !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
 }
 
 @media (max-width: 760px) {
   .side-controls {
-    flex: 0 0 72px !important;
+    flex-basis: 72px !important;
     width: 72px !important;
-    align-self: flex-start !important;
     justify-content: flex-start !important;
-    gap: 32px !important;
-    padding: 0 0 8px 0 !important;
-    margin-top: clamp(180px, 27svh, 275px) !important;
-    transform: none !important;
-    position: relative !important;
+    gap: 42px !important;
+    padding-top: clamp(200px, 30svh, 260px) !important;
+    padding-bottom: 0 !important;
   }
 
-  .side-controls .picker-row {
-    gap: 12px !important;
-  }
-
-  .record-table td:nth-child(7) .two-line-cell .cell-sub,
-  .record-table td:nth-child(7) .cell-sub,
-  .record-table td:nth-child(7) div.cell-sub {
-    font-size: 27.6px !important;
+  .record-table td:nth-child(7) .cell-sub {
+    font-size: 28px !important;
     line-height: 1.05 !important;
-    font-weight: 500 !important;
+    font-weight: 700 !important;
+  }
+}
+
+
+/* v20: 左側選択UIをアプリ全体の中央へ固定 */
+.side-controls {
+  position: fixed !important;
+  left: 20px !important;
+  top: 50svh !important;
+  transform: translateY(-50%) !important;
+  flex-basis: 72px !important;
+  width: 72px !important;
+  height: auto !important;
+  align-self: auto !important;
+  justify-content: flex-start !important;
+  gap: 34px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  z-index: 50 !important;
+}
+
+.side-controls .picker-row {
+  gap: 12px !important;
+}
+
+.side-controls .period-switch {
+  margin-top: 0 !important;
+}
+
+.table-area {
+  padding-left: 90px !important;
+}
+
+.record-table td:nth-child(7) .cell-sub {
+  font-size: 21px !important;
+  line-height: 1.05 !important;
+  font-weight: 600 !important;
+}
+
+@media (max-width: 760px) {
+  .side-controls {
+    left: 20px !important;
+    top: 50svh !important;
+    transform: translateY(-50%) !important;
+    flex-basis: 72px !important;
+    width: 72px !important;
+    gap: 34px !important;
+    padding: 0 !important;
+  }
+
+  .table-area {
+    padding-left: 90px !important;
+  }
+
+  .record-table td:nth-child(7) .cell-sub {
+    font-size: 21px !important;
+    line-height: 1.05 !important;
+    font-weight: 600 !important;
   }
 }
